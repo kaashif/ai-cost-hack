@@ -383,7 +383,15 @@ a {
 }
 
 pre {
+  max-width: 100%;
   overflow: auto;
+}
+
+.challenge-grid > *,
+.benchmark-layout > *,
+.quickstart-grid > *,
+.rules-grid > * {
+  min-width: 0;
 }
 
 .case-panel pre {

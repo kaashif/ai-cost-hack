@@ -36,6 +36,136 @@
     }
   },
   {
+    "id": "public-migration-null",
+    "title": "Unsafe account-region migration",
+    "brief": "Make account.region required before the regional rollout.",
+    "context": [
+      {
+        "kind": "schema",
+        "path": "schema/accounts.sql",
+        "content": "CREATE TABLE accounts (id uuid PRIMARY KEY, region text NULL);"
+      },
+      {
+        "kind": "diff",
+        "path": "migrations/042_account_region.sql",
+        "content": "ALTER TABLE accounts ALTER COLUMN region SET NOT NULL;"
+      },
+      {
+        "kind": "ci",
+        "content": "Unit tests: 412 passed. Migration tests: not configured."
+      }
+    ],
+    "rubric": {
+      "risk": "high",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["missing-backfill"],
+      "required_test_terms": ["existing row", "NULL"],
+      "required_findings": [
+        {
+          "id": "missing-backfill",
+          "category": "data_integrity",
+          "file": "migrations/042_account_region.sql",
+          "evidence_anchor": "without a backfill"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-shell-injection",
+    "title": "Document preview command",
+    "brief": "Generate image previews for uploaded documents.",
+    "context": [
+      {
+        "kind": "diff",
+        "path": "preview/convert.py",
+        "content": "def preview(request):\n    filename = request.form['filename']\n    subprocess.run(f'convert uploads/{filename} preview.png', shell=True)\n    return {'preview': 'preview.png'}\n"
+      },
+      {
+        "kind": "test",
+        "path": "tests/test_preview.py",
+        "content": "def test_pdf_preview(client):\n    assert client.post('/preview', data={'filename': 'guide.pdf'}).status_code == 200\n"
+      }
+    ],
+    "rubric": {
+      "risk": "critical",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["shell-command-injection"],
+      "required_test_terms": ["shell metacharacters", "rejected"],
+      "required_findings": [
+        {
+          "id": "shell-command-injection",
+          "category": "injection",
+          "file": "preview/convert.py",
+          "evidence_anchor": "request input is passed to a shell command"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-hardcoded-secret",
+    "title": "Production payment configuration",
+    "brief": "Configure the payment client for the production deployment.",
+    "context": [
+      {
+        "kind": "diff",
+        "path": "config/payments.py",
+        "content": "API_URL = 'https://payments.example.com'\nAPI_KEY = 'sk_live_replace_me_in_production'\nTIMEOUT_SECONDS = 10\n"
+      },
+      {
+        "kind": "repository",
+        "content": "The repository is public and deployed directly from the main branch."
+      }
+    ],
+    "rubric": {
+      "risk": "critical",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["committed-production-secret"],
+      "required_test_terms": ["secret scanning", "production credential"],
+      "required_findings": [
+        {
+          "id": "committed-production-secret",
+          "category": "privacy",
+          "file": "config/payments.py",
+          "evidence_anchor": "production API key is hard-coded in source"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-disabled-tls",
+    "title": "Partner API integration",
+    "brief": "Connect to the partner API in environments with custom certificates.",
+    "context": [
+      {
+        "kind": "diff",
+        "path": "integrations/client.py",
+        "content": "def fetch_customer(customer_id):\n    return requests.get(\n        f'{PARTNER_URL}/customers/{customer_id}',\n        verify=False,\n        timeout=10,\n    ).json()\n"
+      },
+      {
+        "kind": "review",
+        "content": "The staging certificate currently fails verification."
+      }
+    ],
+    "rubric": {
+      "risk": "high",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["tls-verification-disabled"],
+      "required_test_terms": ["self-signed certificate", "rejected"],
+      "required_findings": [
+        {
+          "id": "tls-verification-disabled",
+          "category": "validation",
+          "file": "integrations/client.py",
+          "evidence_anchor": "TLS certificate verification is explicitly disabled"
+        }
+      ]
+    }
+  },
+  {
     "id": "public-payment-idempotency",
     "title": "Retried payment webhook",
     "brief": "Handle payment-provider webhooks and record successful charges.",
@@ -67,6 +197,159 @@
           "category": "idempotency",
           "file": "payments/webhook.py",
           "evidence_anchor": "capture happens before the event is recorded"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-tenant-cache-key",
+    "title": "Cached account dashboard",
+    "brief": "Cache dashboard summaries to reduce database load.",
+    "context": [
+      {
+        "kind": "schema",
+        "path": "accounts/models.py",
+        "content": "class Account:\n    tenant_id: UUID\n    account_id: UUID\n"
+      },
+      {
+        "kind": "diff",
+        "path": "dashboard/cache.py",
+        "content": "def dashboard(account):\n    key = f'dashboard:{account.account_id}'\n    cached = redis.get(key)\n    if cached:\n        return json.loads(cached)\n    value = build_dashboard(account)\n    redis.set(key, json.dumps(value), ex=300)\n    return value\n"
+      },
+      {
+        "kind": "repository",
+        "content": "Account IDs are unique only within a tenant after the regional database merge."
+      }
+    ],
+    "rubric": {
+      "risk": "high",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["tenant-missing-from-cache-key"],
+      "required_test_terms": ["two tenants", "same account ID"],
+      "required_findings": [
+        {
+          "id": "tenant-missing-from-cache-key",
+          "category": "privacy",
+          "file": "dashboard/cache.py",
+          "evidence_anchor": "cache key omits tenant_id"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-ci-filter-gap",
+    "title": "Green migration test job",
+    "brief": "Run migration tests for every database change.",
+    "context": [
+      {
+        "kind": "diff",
+        "path": ".github/workflows/ci.yml",
+        "content": "jobs:\n  migration-tests:\n    steps:\n      - run: pytest -m migrations tests/\n"
+      },
+      {
+        "kind": "repository",
+        "path": "pyproject.toml",
+        "content": "[tool.pytest.ini_options]\nmarkers = [\"migration: database migration tests\"]\n"
+      },
+      {
+        "kind": "ci",
+        "content": "migration-tests: passed in 0.42s; collected 184 items / 184 deselected / 0 selected"
+      }
+    ],
+    "rubric": {
+      "risk": "high",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["green-job-ran-no-tests"],
+      "required_test_terms": ["at least one test", "zero selected"],
+      "required_findings": [
+        {
+          "id": "green-job-ran-no-tests",
+          "category": "testing_gap",
+          "file": ".github/workflows/ci.yml",
+          "evidence_anchor": "filter selects no migration tests"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-transitive-archive",
+    "title": "Archive metadata dependency",
+    "brief": "Add image metadata extraction for uploaded archives.",
+    "context": [
+      {
+        "kind": "diff",
+        "path": "requirements.txt",
+        "content": "archivekit==2.1.0\n"
+      },
+      {
+        "kind": "lockfile",
+        "path": "requirements.lock",
+        "content": "archivekit==2.1.0\n  extractlib==0.9.4\n"
+      },
+      {
+        "kind": "advisory",
+        "content": "extractlib versions below 1.0 permit ../ path traversal while unpacking nested archives."
+      },
+      {
+        "kind": "diff",
+        "path": "uploads/metadata.py",
+        "content": "def inspect_upload(path):\n    return archivekit.read_metadata(path)\n"
+      }
+    ],
+    "rubric": {
+      "risk": "critical",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["transitive-path-traversal"],
+      "required_test_terms": ["nested archive", "outside extraction directory"],
+      "required_findings": [
+        {
+          "id": "transitive-path-traversal",
+          "category": "dependency",
+          "file": "requirements.txt",
+          "evidence_anchor": "archivekit 2.1 pulls extractlib 0.9"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-timezone-migration",
+    "title": "Appointment UTC migration",
+    "brief": "Convert existing local appointment timestamps to UTC.",
+    "context": [
+      {
+        "kind": "schema",
+        "path": "schema/appointments.sql",
+        "content": "starts_at timestamp without time zone NOT NULL\nclinic_timezone text NOT NULL\n"
+      },
+      {
+        "kind": "repository",
+        "content": "Each clinic stores starts_at in its own clinic_timezone. Clinics span Europe, America, and Asia."
+      },
+      {
+        "kind": "diff",
+        "path": "migrations/077_appointments_utc.sql",
+        "content": "ALTER TABLE appointments\n  ALTER COLUMN starts_at TYPE timestamptz\n  USING starts_at AT TIME ZONE 'UTC';\n"
+      },
+      {
+        "kind": "test",
+        "content": "The migration test creates only a UTC clinic."
+      }
+    ],
+    "rubric": {
+      "risk": "critical",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["local-times-treated-as-utc"],
+      "required_test_terms": ["non-UTC clinic", "preserve instant"],
+      "required_findings": [
+        {
+          "id": "local-times-treated-as-utc",
+          "category": "data_loss",
+          "file": "migrations/077_appointments_utc.sql",
+          "evidence_anchor": "interprets local timestamps as UTC"
         }
       ]
     }

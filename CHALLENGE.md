@@ -22,8 +22,8 @@ Your submission must produce:
 
 ## What makes the hidden set harder
 
-Public examples are intentionally direct. Hidden cases combine signals across files and
-include:
+The public set contains five direct defects and five multi-signal defects. Hidden cases
+use longer, noisier combinations that include:
 
 - authorization failures that only appear when cache or tenant keys are considered;
 - race conditions, retry bugs, and broken idempotency;

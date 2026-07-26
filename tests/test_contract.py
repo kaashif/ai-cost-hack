@@ -53,5 +53,6 @@ def test_starter_scores_exactly_half_of_public_cases() -> None:
         for case in _load_cases()
     ]
 
-    assert [result["score"] for result in results] == [100.0, 0.0]
-    assert [result["passed"] for result in results] == [True, False]
+    assert len(results) == 10
+    assert sum(result["passed"] for result in results) == 5
+    assert sum(result["score"] for result in results) / len(results) == 50.0

@@ -16,6 +16,13 @@ def _section_text(case: Case) -> str:
     )
 
 
+def _path_containing(case: Case, marker: str, fallback: str) -> str:
+    for section in case["context"]:
+        if marker in section["content"]:
+            return section.get("path", fallback)
+    return fallback
+
+
 def review(case: Case, client: ModelClient) -> Review:
     text = _section_text(case)
     findings: list[Finding] = []
@@ -48,6 +55,48 @@ def review(case: Case, client: ModelClient) -> Review:
             }
         )
         tests.append("run the migration against an existing row whose region is NULL")
+        risk = "high"
+        action = "block"
+
+    if "shell=True" in text and "request.form" in text:
+        findings.append(
+            {
+                "category": "injection",
+                "severity": "critical",
+                "file": _path_containing(case, "shell=True", "preview/convert.py"),
+                "evidence": "request input is passed to a shell command",
+                "explanation": "An attacker can inject shell syntax through the filename.",
+            }
+        )
+        tests.append("a filename containing shell metacharacters is rejected")
+        risk = "critical"
+        action = "block"
+
+    if "sk_live_" in text:
+        findings.append(
+            {
+                "category": "privacy",
+                "severity": "critical",
+                "file": _path_containing(case, "sk_live_", "config/payments.py"),
+                "evidence": "production API key is hard-coded in source",
+                "explanation": "Anyone with repository access can use the production credential.",
+            }
+        )
+        tests.append("secret scanning must reject a committed production credential")
+        risk = "critical"
+        action = "block"
+
+    if "verify=False" in text:
+        findings.append(
+            {
+                "category": "validation",
+                "severity": "high",
+                "file": _path_containing(case, "verify=False", "integrations/client.py"),
+                "evidence": "TLS certificate verification is explicitly disabled",
+                "explanation": "The client will accept an untrusted server certificate.",
+            }
+        )
+        tests.append("a self-signed certificate must be rejected")
         risk = "high"
         action = "block"
 

@@ -6,20 +6,22 @@ Do not branch on case IDs: hidden cases use different IDs and harder combination
 
 from __future__ import annotations
 
+from costhack.schema import Action, Case, Finding, ModelClient, Review, Risk
 
-def _section_text(case: dict) -> str:
+
+def _section_text(case: Case) -> str:
     return "\n".join(
         f"{section.get('path', section['kind'])}\n{section['content']}"
         for section in case["context"]
     )
 
 
-def review(case: dict, client) -> dict:
+def review(case: Case, client: ModelClient) -> Review:
     text = _section_text(case)
-    findings = []
-    tests = []
-    risk = "low"
-    action = "approve"
+    findings: list[Finding] = []
+    tests: list[str] = []
+    risk: Risk = "low"
+    action: Action = "approve"
 
     if "delete_project" in text and "authorize_project" not in text:
         findings.append(

@@ -7,38 +7,45 @@ import importlib.util
 import json
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
+from typing import Protocol, cast
 
 from .contract import OfflineModelClient, validate_review
+from .schema import Case, ModelClient, Review, ScoreResult
 from .scoring import score_review
 
 ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_DATA = ROOT / "data" / "public_cases.json"
 
 
-def _load_cases() -> list[dict]:
-    return json.loads(PUBLIC_DATA.read_text())
+class StrategyModule(Protocol):
+    review: Callable[[Case, ModelClient], Review]
 
 
-def _load_strategy():
+def _load_cases() -> list[Case]:
+    return cast(list[Case], json.loads(PUBLIC_DATA.read_text()))
+
+
+def _load_strategy() -> StrategyModule:
     path = ROOT / "submission" / "strategy.py"
     spec = importlib.util.spec_from_file_location("submission.strategy", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"could not load strategy from {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module
+    return cast(StrategyModule, module)
 
 
 def benchmark() -> int:
     strategy = _load_strategy()
     client = OfflineModelClient()
-    rows = []
+    rows: list[tuple[str, ScoreResult]] = []
     for case in _load_cases():
         try:
             review = validate_review(strategy.review(case, client))
             result = score_review(review, case["rubric"])
-        except Exception as exc:  # noqa: BLE001 - participant errors are isolated per case
+        except Exception as exc:
             result = {"score": 0.0, "passed": False, "missing": [], "error": str(exc)}
         rows.append((case["id"], result))
 
@@ -70,7 +77,7 @@ def inspect_case(case_id: str) -> int:
 
 
 def preflight() -> int:
-    problems = []
+    problems: list[str] = []
     env_path = ROOT / ".env"
     if env_path.exists() and os.system("git check-ignore -q .env") != 0:
         problems.append(".env exists but is not ignored by Git")

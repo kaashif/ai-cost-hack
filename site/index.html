@@ -67,7 +67,9 @@
               dependencies, and prior discussion. It returns an evidence-backed release
               review.
             </p>
-            <pre><code>def review(case: dict, client) -&gt; dict:
+            <pre><code>from costhack.schema import Case, ModelClient, Review
+
+def review(case: Case, client: ModelClient) -&gt; Review:
     ...</code></pre>
             <p>
               You may use deterministic rules, the evaluator-provided model client, or

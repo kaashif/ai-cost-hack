@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from .contract import RISKS, validate_review
+from .schema import Review, Rubric, ScoreResult
 
 
 def _contains(text: str, needle: str) -> bool:
     return needle.casefold() in text.casefold()
 
 
-def score_review(review: dict[str, Any], rubric: dict[str, Any]) -> dict[str, Any]:
-    validate_review(review)
+def score_review(review: Review, rubric: Rubric) -> ScoreResult:
+    review = validate_review(review)
     required = rubric["required_findings"]
     matched: list[str] = []
     missing: list[str] = []

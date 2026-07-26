@@ -1,8 +1,9 @@
 from costhack.contract import ContractError, validate_review
+from costhack.schema import Review, Rubric
 from costhack.scoring import score_review
 
 
-def test_invalid_review_is_rejected():
+def test_invalid_review_is_rejected() -> None:
     try:
         validate_review({"risk": "banana"})
     except ContractError:
@@ -10,8 +11,8 @@ def test_invalid_review_is_rejected():
     raise AssertionError("invalid review was accepted")
 
 
-def test_exact_public_finding_passes():
-    rubric = {
+def test_exact_public_finding_passes() -> None:
+    rubric: Rubric = {
         "risk": "high",
         "next_action": "block",
         "pass_score": 80,
@@ -26,7 +27,7 @@ def test_exact_public_finding_passes():
             }
         ],
     }
-    review = {
+    review: Review = {
         "risk": "high",
         "findings": [
             {

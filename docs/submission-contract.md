@@ -11,7 +11,10 @@ from submission.strategy import review
 The callable must have this shape:
 
 ```python
-def review(case: dict, client) -> dict: ...
+from costhack.schema import Case, ModelClient, Review
+
+
+def review(case: Case, client: ModelClient) -> Review: ...
 ```
 
 `case` is JSON-compatible and follows the public case schema. `client` is an

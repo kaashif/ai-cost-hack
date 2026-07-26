@@ -34,7 +34,20 @@ client.generate(
 )
 ```
 
-It returns a model response object documented by the event starter. The hidden evaluator
+It returns a JSON-compatible dictionary with this stable shape:
+
+```python
+{
+    "text": "model response text",
+    "model": "resolved-model-name",
+    "usage": {
+        "input_tokens": 120,
+        "output_tokens": 80,
+    },
+}
+```
+
+Token counts may be absent when a provider does not report them. The hidden evaluator
 may restrict models, maximum calls, output tokens, or compression modes.
 
 ## Review output

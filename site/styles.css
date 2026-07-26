@@ -1,19 +1,22 @@
 :root {
-  --canvas: #f3f1ed;
-  --surface: #fffefa;
-  --surface-soft: #f8f6f1;
-  --text: #24211f;
-  --muted: #6d6762;
-  --line: #ded8d0;
-  --accent: #b14d20;
-  --accent-dark: #7c3012;
-  --accent-soft: #f5e6dc;
-  --code: #f1efea;
-  --note: #edf5f7;
-  --note-line: #4e8495;
-  --warning: #fff5d9;
-  --warning-line: #c77b0c;
-  --shadow: 0 1px 2px rgba(45, 35, 28, 0.06), 0 12px 36px rgba(45, 35, 28, 0.07);
+  --canvas: #05052a;
+  --surface: #0b0b3b;
+  --surface-soft: #12124d;
+  --text: #f5f3ff;
+  --muted: #b7b3d0;
+  --line: #39386f;
+  --accent: #20e7f2;
+  --accent-dark: #75f5fb;
+  --accent-soft: #122f55;
+  --code: #05051c;
+  --note: #101b49;
+  --note-line: #20e7f2;
+  --warning: #382800;
+  --warning-line: #ffd500;
+  --yellow: #ffd500;
+  --pink: #ff00b8;
+  --purple: #7433ff;
+  --shadow: 0 0 0 1px rgba(116, 51, 255, 0.2), 0 18px 50px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -28,7 +31,8 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at top right, rgba(177, 77, 32, 0.08), transparent 28rem),
+    radial-gradient(circle at 88% 4%, rgba(255, 0, 184, 0.16), transparent 28rem),
+    radial-gradient(circle at 8% 26%, rgba(32, 231, 242, 0.1), transparent 24rem),
     var(--canvas);
   font-family:
     Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
@@ -55,7 +59,7 @@ pre {
 
 code {
   padding: 0.14rem 0.34rem;
-  color: #473c36;
+  color: #d9ffe1;
   background: var(--code);
   border-radius: 4px;
   font-size: 0.9em;
@@ -66,10 +70,10 @@ pre {
   margin: 1.35rem 0;
   padding: 1.3rem 1.4rem;
   overflow: auto;
-  color: #2c2926;
+  color: #d9ffe1;
   background: var(--code);
   border: 1px solid var(--line);
-  border-left: 4px solid #c8bfb4;
+  border-left: 4px solid var(--purple);
   border-radius: 7px;
   font-size: 0.88rem;
   line-height: 1.62;
@@ -85,7 +89,7 @@ pre code {
 h1,
 h2,
 h3 {
-  color: #1d1b19;
+  color: white;
   line-height: 1.22;
   font-weight: 700;
 }
@@ -126,7 +130,7 @@ li + li {
   z-index: 30;
   padding: 0.7rem 1rem;
   color: white;
-  background: var(--accent-dark);
+  background: var(--purple);
   border-radius: 0 0 6px 6px;
 }
 
@@ -142,9 +146,9 @@ li + li {
   align-items: center;
   min-height: 68px;
   padding: 0 2.25rem;
-  background: rgba(255, 254, 250, 0.94);
+  background: rgba(5, 5, 42, 0.94);
   border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 8px rgba(45, 35, 28, 0.05);
+  box-shadow: 0 2px 0 var(--pink), 0 8px 24px rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(12px);
 }
 
@@ -164,8 +168,8 @@ li + li {
   place-items: center;
   width: 32px;
   height: 32px;
-  color: white;
-  background: var(--accent);
+  color: var(--canvas);
+  background: var(--yellow);
   border-radius: 8px;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.9rem;
@@ -244,7 +248,7 @@ li + li {
 
 .sidebar nav a {
   padding: 0.48rem 0.65rem;
-  color: #4f4945;
+  color: #d6d2eb;
   border-left: 3px solid transparent;
   border-radius: 0 5px 5px 0;
   font-size: 0.88rem;
@@ -254,7 +258,7 @@ li + li {
 
 .sidebar nav a:hover,
 .sidebar nav a:focus-visible {
-  color: var(--accent-dark);
+  color: white;
   background: var(--accent-soft);
   border-left-color: var(--accent);
 }
@@ -290,7 +294,7 @@ article > section > p,
 .lead {
   max-width: 62ch;
   margin-bottom: 2rem;
-  color: #514b47;
+  color: #d6d2eb;
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(1.15rem, 2vw, 1.32rem);
   line-height: 1.65;
@@ -307,13 +311,13 @@ article > section > p,
 
 .note {
   background: var(--note);
-  border-color: #cbdde2;
+  border-color: #2d5e79;
   border-left-color: var(--note-line);
 }
 
 .warning {
   background: var(--warning);
-  border-color: #eedda9;
+  border-color: #6f5510;
   border-left-color: var(--warning-line);
 }
 
@@ -335,13 +339,13 @@ section {
   width: 38px;
   height: 38px;
   margin-top: 0.05rem;
-  color: white;
-  background: var(--accent);
+  color: var(--canvas);
+  background: var(--yellow);
   border-radius: 10px;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.88rem;
   font-weight: 800;
-  box-shadow: 3px 3px 0 var(--accent-soft);
+  box-shadow: 3px 3px 0 var(--pink);
 }
 
 .next-links {
@@ -364,7 +368,7 @@ section {
 .next-links a:hover,
 .next-links a:focus-visible {
   background: var(--accent-soft);
-  border-color: #dab9a7;
+  border-color: var(--accent);
 }
 
 @media (max-width: 900px) {

@@ -36,40 +36,39 @@
     }
   },
   {
-    "id": "public-migration-null",
-    "title": "Unsafe account-region migration",
-    "brief": "Make account.region required before the regional rollout.",
+    "id": "public-payment-idempotency",
+    "title": "Retried payment webhook",
+    "brief": "Handle payment-provider webhooks and record successful charges.",
     "context": [
       {
-        "kind": "schema",
-        "path": "schema/accounts.sql",
-        "content": "CREATE TABLE accounts (id uuid PRIMARY KEY, region text NULL);"
+        "kind": "issue",
+        "content": "The payment provider retries a webhook when it does not receive a response within five seconds."
       },
       {
         "kind": "diff",
-        "path": "migrations/042_account_region.sql",
-        "content": "ALTER TABLE accounts ALTER COLUMN region SET NOT NULL;"
+        "path": "payments/webhook.py",
+        "content": "def payment_succeeded(event):\n    invoice = invoices.get(event.invoice_id)\n    ledger.capture(invoice.customer_id, event.amount)\n    processed_events.insert(event.id)\n    return {\"ok\": True}\n"
       },
       {
-        "kind": "ci",
-        "content": "Unit tests: 412 passed. Migration tests: not configured."
+        "kind": "test",
+        "path": "tests/test_webhook.py",
+        "content": "def test_payment_succeeded(invoice, event):\n    assert payment_succeeded(event) == {\"ok\": True}\n    assert ledger.charge_count(invoice.customer_id) == 1\n"
       }
     ],
     "rubric": {
       "risk": "high",
       "next_action": "block",
       "pass_score": 80,
-      "must_find": ["missing-backfill"],
-      "required_test_terms": ["existing row", "NULL"],
+      "must_find": ["charge-before-idempotency-check"],
+      "required_test_terms": ["same event", "one charge"],
       "required_findings": [
         {
-          "id": "missing-backfill",
-          "category": "data_integrity",
-          "file": "migrations/042_account_region.sql",
-          "evidence_anchor": "without a backfill"
+          "id": "charge-before-idempotency-check",
+          "category": "idempotency",
+          "file": "payments/webhook.py",
+          "evidence_anchor": "capture happens before the event is recorded"
         }
       ]
     }
   }
 ]
-

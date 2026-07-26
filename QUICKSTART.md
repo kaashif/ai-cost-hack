@@ -17,8 +17,8 @@ uv sync
 uv run costhack benchmark --public
 ```
 
-The starter strategy is local and makes no paid API calls. It shows the result format and
-should pass the small public examples.
+The starter strategy is local and makes no paid API calls. It intentionally catches only
+one of the two public cases, scoring 50%. Improve it before optimizing cost.
 
 ## 3. Inspect a case
 

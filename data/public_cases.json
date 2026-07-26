@@ -1,0 +1,75 @@
+[
+  {
+    "id": "public-auth-delete",
+    "title": "Cross-tenant project deletion",
+    "brief": "Add a project deletion endpoint for the settings screen.",
+    "context": [
+      {
+        "kind": "issue",
+        "content": "Users should be able to delete projects they own from Settings."
+      },
+      {
+        "kind": "diff",
+        "path": "api/delete_project.py",
+        "content": "def delete_project(request, project_id):\n    user = require_user(request)\n    project = db.projects.get(project_id)\n    db.projects.delete(project.id)\n    return {\"deleted\": True}\n"
+      },
+      {
+        "kind": "test",
+        "path": "tests/test_delete_project.py",
+        "content": "def test_owner_can_delete(client, owned_project):\n    assert client.delete(f'/projects/{owned_project.id}').status_code == 200\n"
+      }
+    ],
+    "rubric": {
+      "risk": "high",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["missing-owner-check"],
+      "required_test_terms": ["cross-tenant", "403"],
+      "required_findings": [
+        {
+          "id": "missing-owner-check",
+          "category": "authorization",
+          "file": "api/delete_project.py",
+          "evidence_anchor": "without an owner check"
+        }
+      ]
+    }
+  },
+  {
+    "id": "public-migration-null",
+    "title": "Unsafe account-region migration",
+    "brief": "Make account.region required before the regional rollout.",
+    "context": [
+      {
+        "kind": "schema",
+        "path": "schema/accounts.sql",
+        "content": "CREATE TABLE accounts (id uuid PRIMARY KEY, region text NULL);"
+      },
+      {
+        "kind": "diff",
+        "path": "migrations/042_account_region.sql",
+        "content": "ALTER TABLE accounts ALTER COLUMN region SET NOT NULL;"
+      },
+      {
+        "kind": "ci",
+        "content": "Unit tests: 412 passed. Migration tests: not configured."
+      }
+    ],
+    "rubric": {
+      "risk": "high",
+      "next_action": "block",
+      "pass_score": 80,
+      "must_find": ["missing-backfill"],
+      "required_test_terms": ["existing row", "NULL"],
+      "required_findings": [
+        {
+          "id": "missing-backfill",
+          "category": "data_integrity",
+          "file": "migrations/042_account_region.sql",
+          "evidence_anchor": "without a backfill"
+        }
+      ]
+    }
+  }
+]
+

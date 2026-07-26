@@ -5,220 +5,299 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="London AI Cost Hack — build the cheapest AI release-gate reviewer that still catches dangerous changes."
+      content="Step-by-step setup guide for the London AI Cost Hack."
     />
-    <title>AI Cost Hack — Lowest Cost Wins</title>
+    <title>Getting started · AI Cost Hack</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to challenge</a>
-    <header class="topbar">
-      <a class="brand" href="#top" aria-label="AI Cost Hack home">
-        <span class="brand-light" aria-hidden="true"></span>
-        <span>hack.exe</span>
-      </a>
-      <nav aria-label="Main navigation">
-        <a href="#challenge">Challenge</a>
-        <a href="#benchmark">Benchmark</a>
-        <a href="#quickstart">Quickstart</a>
-        <a href="#rules">Rules</a>
+    <a class="skip-link" href="#content">Skip to content</a>
+
+    <header class="site-header">
+      <a class="site-title" href="#top">AI Cost Hack</a>
+      <span class="site-subtitle">participant guide</span>
+      <nav aria-label="External links">
+        <a href="https://github.com/kaashif/ai-cost-hack">GitHub</a>
+        <a href="https://luma.com/i29x7bkv">Event</a>
       </nav>
-      <a class="repo-link" href="https://github.com/kaashif/ai-cost-hack">GitHub ↗</a>
     </header>
 
-    <main id="main">
-      <section id="top" class="hero">
-        <div class="stars" aria-hidden="true"></div>
-        <div class="hero-copy">
-          <p class="eyebrow">THU JULY 30 · LONDON · £100 PRIZE</p>
-          <h1>AI COST<br /><span>HACK</span></h1>
-          <p class="tagline">LOWEST COST WINS</p>
-          <p class="lede">
-            Build the cheapest AI release-gate reviewer that still catches dangerous
-            software changes.
-          </p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#quickstart">START HACKING</a>
-            <a class="button button-secondary" href="#benchmark">VIEW EXAMPLE</a>
-          </div>
-        </div>
-        <div class="hero-art">
-          <img
-            src="assets/poster-square.png"
-            alt="Pixel-art AI Cost Hack event poster"
-            width="1254"
-            height="1254"
-          />
-        </div>
-      </section>
+    <div class="docs-layout" id="top">
+      <aside class="sidebar">
+        <p class="sidebar-title">Getting started</p>
+        <nav aria-label="Guide sections">
+          <a href="#overview">Overview</a>
+          <a href="#prerequisites">1. Prerequisites</a>
+          <a href="#clone">2. Clone the starter</a>
+          <a href="#benchmark">3. Run the benchmark</a>
+          <a href="#inspect">4. Inspect a case</a>
+          <a href="#strategy">5. Edit your strategy</a>
+          <a href="#accounts">6. Sponsor accounts</a>
+          <a href="#validate">7. Validate</a>
+          <a href="#submit">8. Submit</a>
+          <a href="#rules">Rules</a>
+        </nav>
+      </aside>
 
-      <section id="challenge" class="content-section">
-        <div class="window">
-          <div class="window-title">
-            <span>challenge.txt</span>
-            <span class="window-controls" aria-hidden="true">_ □ ×</span>
+      <main id="content">
+        <article>
+          <p class="eyebrow">London · Thursday 30 July · £100 prize</p>
+          <h1>Getting started</h1>
+          <p class="lead">
+            Build the lowest-cost AI release reviewer that still catches dangerous
+            software changes. Pass the quality gate first; among passing submissions,
+            lowest accounted cost wins.
+          </p>
+
+          <div class="note">
+            <strong>No account is required to begin.</strong>
+            The starter and public benchmark run locally, make zero model calls, and cost
+            nothing.
           </div>
-          <div class="window-body challenge-grid">
+
+          <section id="overview">
+            <h2>What you are building</h2>
+            <p>
+              Your submission implements one Python function. It receives a pull-request
+              case containing a diff, issue, repository context, CI logs, migrations,
+              dependencies, and prior discussion. It returns an evidence-backed release
+              review.
+            </p>
+            <pre><code>def review(case: dict, client) -&gt; dict:
+    ...</code></pre>
+            <p>
+              You may use deterministic rules, the evaluator-provided model client, or
+              both. The final evaluator uses harder private cases. Every paid call must
+              go through <code>client</code> so it can be measured.
+            </p>
+          </section>
+
+          <section id="prerequisites" class="step">
+            <span class="step-number">1</span>
             <div>
-              <p class="section-kicker">THE REAL CHALLENGE</p>
-              <h2>PATCHGUARD</h2>
+              <h2>Install the prerequisites</h2>
+              <p>You need:</p>
+              <ul>
+                <li>Git</li>
+                <li>Python 3.11 or newer</li>
+                <li><a href="https://docs.astral.sh/uv/">uv</a></li>
+              </ul>
+              <p>Check them:</p>
+              <pre><code>git --version
+python3 --version
+uv --version</code></pre>
+            </div>
+          </section>
+
+          <section id="clone" class="step">
+            <span class="step-number">2</span>
+            <div>
+              <h2>Clone the starter</h2>
+              <pre><code>git clone https://github.com/kaashif/ai-cost-hack.git
+cd ai-cost-hack
+uv sync</code></pre>
               <p>
-                Review a pull request using its diff, issue, repository context, CI logs,
-                migrations, dependencies, and previous discussion. Return structured,
-                evidence-backed release findings.
+                This installs the benchmark CLI and development tools from the committed
+                lockfile.
               </p>
             </div>
-            <ol class="pipeline" aria-label="Challenge workflow">
-              <li><span>01</span> Read noisy engineering context</li>
-              <li><span>02</span> Find release-blocking risks</li>
-              <li><span>03</span> Cite evidence and tests</li>
-              <li><span>04</span> Pass quality, then minimize cost</li>
-            </ol>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <section id="benchmark" class="content-section benchmark-section">
-        <div class="section-heading">
-          <p class="section-kicker">INTERACTIVE EXAMPLE</p>
-          <h2>BENCHMARK.EXE</h2>
-          <p>
-            Switch strategies to see why cheap output is not enough. These are
-            illustrative public results; the event evaluator measures real calls.
-          </p>
-        </div>
-
-        <div class="benchmark-layout">
-          <div class="case-panel">
-            <div class="panel-label">PUBLIC CASE</div>
-            <h3>Cross-tenant project deletion</h3>
-            <pre><code>def delete_project(request, project_id):
-    user = require_user(request)
-    project = db.projects.get(project_id)
-    db.projects.delete(project.id)</code></pre>
-            <p class="case-question">Should this change ship?</p>
-          </div>
-
-          <div class="score-panel">
-            <div class="strategy-tabs" role="tablist" aria-label="Example strategies">
-              <button role="tab" aria-selected="true" data-strategy="baseline">
-                FULL MODEL
-              </button>
-              <button role="tab" aria-selected="false" data-strategy="cheap">
-                CHEAPEST
-              </button>
-              <button role="tab" aria-selected="false" data-strategy="smart">
-                SMART ROUTER
-              </button>
+          <section id="benchmark" class="step">
+            <span class="step-number">3</span>
+            <div>
+              <h2>Run the public benchmark</h2>
+              <pre><code>uv run costhack benchmark --public</code></pre>
+              <p>The starter should report:</p>
+              <pre><code>ELIGIBLE  quality=100.0  model_calls=0
+Public cost is $0.00 because the starter strategy is local.</code></pre>
+              <p>
+                These examples are deliberately easy. They demonstrate the input,
+                output, and scoring contract without revealing the final test set.
+              </p>
             </div>
-            <div class="terminal" aria-live="polite">
-              <p><span class="prompt">&gt;</span> run patchguard --public</p>
-              <div class="terminal-result">
-                <p id="result-status" class="status pass">QUALITY GATE: PASS</p>
-                <dl>
-                  <div><dt>Quality</dt><dd id="result-quality">100</dd></div>
-                  <div><dt>Cost</dt><dd id="result-cost">$0.038</dd></div>
-                  <div><dt>Calls</dt><dd id="result-calls">1</dd></div>
-                  <div><dt>Finding</dt><dd id="result-finding">Missing owner check</dd></div>
-                </dl>
-                <p id="result-note" class="terminal-note">
-                  Accurate, but sends all context to an expensive model.
-                </p>
+          </section>
+
+          <section id="inspect" class="step">
+            <span class="step-number">4</span>
+            <div>
+              <h2>Inspect a public case</h2>
+              <pre><code>uv run costhack inspect public-auth-delete</code></pre>
+              <p>
+                Read <code>data/public_cases.json</code> to see the complete public case
+                schema. Public cases include their rubrics; private cases do not.
+              </p>
+            </div>
+          </section>
+
+          <section id="strategy" class="step">
+            <span class="step-number">5</span>
+            <div>
+              <h2>Edit your strategy</h2>
+              <p>
+                Open <code>submission/strategy.py</code>. Keep the
+                <code>review(case, client)</code> entry point and return this shape:
+              </p>
+              <pre><code>{
+    "risk": "high",
+    "findings": [
+        {
+            "category": "authorization",
+            "severity": "high",
+            "file": "api/delete_project.py",
+            "evidence": "The project is loaded without an owner check.",
+            "explanation": "A user can delete another tenant's project.",
+        }
+    ],
+    "tests": ["Cross-tenant deletion must return 403"],
+    "next_action": "block",
+}</code></pre>
+              <p>
+                If you use a model, call <code>client.generate(...)</code>. Do not create
+                another paid provider client.
+              </p>
+              <pre><code>response = client.generate(
+    model="default_routing",
+    messages=[
+        {"role": "system", "content": "Review this change."},
+        {"role": "user", "content": case["brief"]},
+    ],
+    max_output_tokens=1200,
+    compression="none",
+    tags={"stage": "review"},
+)</code></pre>
+            </div>
+          </section>
+
+          <section id="accounts" class="step">
+            <span class="step-number">6</span>
+            <div>
+              <h2>Set up the sponsor accounts</h2>
+              <p>
+                Skip this section until you want to make live model calls. If the event
+                gives you credentials, use those instead of creating separate ones.
+              </p>
+
+              <h3>Merge Gateway</h3>
+              <ol>
+                <li>
+                  Open
+                  <a href="https://gateway.merge.dev/signup">gateway.merge.dev/signup</a>.
+                </li>
+                <li>Create an account and complete verification.</li>
+                <li>Accept the event organization invitation if you receive one.</li>
+                <li>
+                  Open
+                  <a href="https://gateway.merge.dev/settings/api-keys"
+                    >Settings → API keys</a
+                  >.
+                </li>
+                <li>Create a regular model-calling key beginning with <code>mg_</code>.</li>
+                <li>
+                  Copy the event project ID. Do not use an <code>mgmt_</code> management
+                  key.
+                </li>
+              </ol>
+
+              <h3>condense.chat</h3>
+              <ol>
+                <li>Install the official CLI:</li>
+              </ol>
+              <pre><code>curl -fsSL https://cli.condense.chat/unix | sh</code></pre>
+              <ol start="2">
+                <li>Start the browser sign-in flow:</li>
+              </ol>
+              <pre><code>dense login</code></pre>
+              <ol start="3">
+                <li>Choose <strong>Sign up</strong> if you do not have an account.</li>
+                <li>Complete the device flow, then verify:</li>
+              </ol>
+              <pre><code>dense status
+dense doctor</code></pre>
+              <ol start="5">
+                <li>
+                  If you need direct API access, copy the <code>ak_</code> token from the
+                  condense.chat dashboard.
+                </li>
+              </ol>
+
+              <h3>Store credentials locally</h3>
+              <pre><code>cp .env.example .env
+chmod 600 .env</code></pre>
+              <p>Edit <code>.env</code>:</p>
+              <pre><code>MERGE_GATEWAY_API_KEY=mg_replace_me
+MERGE_GATEWAY_PROJECT_ID=replace_me
+CONDENSE_AUTH_TOKEN=ak_replace_me</code></pre>
+              <div class="warning">
+                <strong>Never commit <code>.env</code>.</strong>
+                If a secret is committed, revoke it immediately. Removing it from the
+                latest commit does not remove it from Git history.
               </div>
             </div>
-            <p class="winner-rule">PASS QUALITY → LOWEST ACCOUNTED COST WINS</p>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <section id="quickstart" class="content-section quickstart-section">
-        <div class="section-heading">
-          <p class="section-kicker">FOUR COMMANDS</p>
-          <h2>QUICKSTART</h2>
-        </div>
-        <div class="quickstart-grid">
-          <ol class="steps">
-            <li>
-              <span>1</span>
-              <div><strong>Clone</strong><p>Get the public starter and examples.</p></div>
-            </li>
-            <li>
-              <span>2</span>
-              <div><strong>Run</strong><p>Establish your public quality baseline.</p></div>
-            </li>
-            <li>
-              <span>3</span>
-              <div><strong>Optimize</strong><p>Edit one strategy entry point.</p></div>
-            </li>
-            <li>
-              <span>4</span>
-              <div><strong>Submit</strong><p>Push a public repo and exact commit SHA.</p></div>
-            </li>
-          </ol>
-          <div class="code-card">
-            <button class="copy-button" type="button" data-copy-target="quickstart-code">
-              COPY
-            </button>
-            <pre id="quickstart-code"><code>git clone https://github.com/kaashif/ai-cost-hack.git
-cd ai-cost-hack
-uv sync
-uv run costhack benchmark --public</code></pre>
-            <p id="copy-status" role="status"></p>
-          </div>
-        </div>
-        <div class="link-row">
-          <a href="https://github.com/kaashif/ai-cost-hack/blob/main/QUICKSTART.md">
-            FULL QUICKSTART ↗
-          </a>
-          <a href="https://github.com/kaashif/ai-cost-hack/blob/main/docs/account-setup.md">
-            SPONSOR ACCOUNTS ↗
-          </a>
-          <a
-            href="https://github.com/kaashif/ai-cost-hack/blob/main/docs/submission-contract.md"
-          >
-            SUBMISSION CONTRACT ↗
-          </a>
-        </div>
-      </section>
+          <section id="validate" class="step">
+            <span class="step-number">7</span>
+            <div>
+              <h2>Validate your submission</h2>
+              <pre><code>uv run costhack preflight
+uv run costhack benchmark --public
+uv run pytest
+git status --short</code></pre>
+              <p>
+                Confirm that <code>.env</code> is ignored and that your public benchmark
+                still passes after every strategy change.
+              </p>
+            </div>
+          </section>
 
-      <section id="rules" class="content-section">
-        <div class="rules-grid">
-          <article class="rule-card good">
-            <p class="section-kicker">YOU CAN</p>
-            <h3>OPTIMIZE EVERYTHING</h3>
+          <section id="submit" class="step">
+            <span class="step-number">8</span>
+            <div>
+              <h2>Commit, push, and submit</h2>
+              <pre><code>git add submission pyproject.toml uv.lock
+git commit -m "Submit PatchGuard strategy"
+git push
+git rev-parse HEAD</code></pre>
+              <p>Submit both of these before the cutoff:</p>
+              <ul>
+                <li>Your public GitHub repository URL</li>
+                <li>The exact commit SHA printed by the final command</li>
+              </ul>
+            </div>
+          </section>
+
+          <section id="rules">
+            <h2>Rules</h2>
+            <h3>You may</h3>
             <ul>
-              <li>Route across approved models</li>
-              <li>Compress or retrieve context</li>
-              <li>Use rules and local inference</li>
-              <li>Skip calls when evidence is clear</li>
+              <li>Route across approved models.</li>
+              <li>Compress, retrieve, or discard context.</li>
+              <li>Combine deterministic rules with model calls.</li>
+              <li>Skip model calls when the supplied evidence is sufficient.</li>
             </ul>
-          </article>
-          <article class="rule-card bad">
-            <p class="section-kicker">YOU CANNOT</p>
-            <h3>BREAK THE METER</h3>
+            <h3>You may not</h3>
             <ul>
-              <li>Use hidden answers or case IDs</li>
-              <li>Make unmetered paid calls</li>
-              <li>Fabricate usage or alter scoring</li>
-              <li>Send hidden data elsewhere</li>
+              <li>Use hidden answers or hidden case IDs.</li>
+              <li>Make unmetered paid model calls.</li>
+              <li>Fabricate usage data or alter the scorer.</li>
+              <li>Send hidden evaluation data elsewhere.</li>
             </ul>
-          </article>
-        </div>
-      </section>
+          </section>
 
-      <section class="final-cta">
-        <p>QUALITY FIRST. THEN COST.</p>
-        <h2>SHIP THE CHEAPEST<br />REVIEWER THAT WORKS.</h2>
-        <a class="button button-primary" href="https://github.com/kaashif/ai-cost-hack">
-          OPEN THE STARTER ↗
-        </a>
-      </section>
-    </main>
-
-    <footer>
-      <span>AI COST HACK · LONDON · 2026</span>
-      <a href="https://luma.com/i29x7bkv">EVENT PAGE ↗</a>
-    </footer>
-    <script src="app.js"></script>
+          <nav class="next-links" aria-label="Further documentation">
+            <a href="https://github.com/kaashif/ai-cost-hack/blob/main/QUICKSTART.md">
+              Full quickstart
+            </a>
+            <a
+              href="https://github.com/kaashif/ai-cost-hack/blob/main/docs/submission-contract.md"
+            >
+              Submission contract
+            </a>
+            <a href="https://github.com/kaashif/ai-cost-hack/issues">Ask a question</a>
+          </nav>
+        </article>
+      </main>
+    </div>
   </body>
 </html>

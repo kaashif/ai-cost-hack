@@ -36,7 +36,7 @@ def review(case: Case, client: ModelClient) -> Review:
                 "category": "authorization",
                 "severity": "high",
                 "file": "api/delete_project.py",
-                "evidence": "delete_project loads project_id and deletes it without an owner check",
+                "evidence": "db.projects.get(project_id) is followed by deletion without an owner check",
                 "explanation": "A caller can delete a project belonging to another tenant.",
             }
         )
@@ -56,7 +56,7 @@ def review(case: Case, client: ModelClient) -> Review:
         )
         tests.append("run the migration against an existing row whose region is NULL")
         risk = "high"
-        action = "block"
+        action = "request_changes"
 
     if "shell=True" in text and "request.form" in text:
         findings.append(
@@ -64,7 +64,7 @@ def review(case: Case, client: ModelClient) -> Review:
                 "category": "injection",
                 "severity": "critical",
                 "file": _path_containing(case, "shell=True", "preview/convert.py"),
-                "evidence": "request input is passed to a shell command",
+                "evidence": "request.form input reaches subprocess.run(..., shell=True)",
                 "explanation": "An attacker can inject shell syntax through the filename.",
             }
         )
@@ -76,15 +76,15 @@ def review(case: Case, client: ModelClient) -> Review:
         findings.append(
             {
                 "category": "privacy",
-                "severity": "critical",
+                "severity": "high",
                 "file": _path_containing(case, "sk_live_", "config/payments.py"),
-                "evidence": "production API key is hard-coded in source",
+                "evidence": "API_KEY contains a hard-coded sk_live_ production credential",
                 "explanation": "Anyone with repository access can use the production credential.",
             }
         )
         tests.append("secret scanning must reject a committed production credential")
-        risk = "critical"
-        action = "block"
+        risk = "high"
+        action = "request_changes"
 
     if "verify=False" in text:
         findings.append(
@@ -92,13 +92,13 @@ def review(case: Case, client: ModelClient) -> Review:
                 "category": "validation",
                 "severity": "high",
                 "file": _path_containing(case, "verify=False", "integrations/client.py"),
-                "evidence": "TLS certificate verification is explicitly disabled",
+                "evidence": "requests.get is called with verify=False",
                 "explanation": "The client will accept an untrusted server certificate.",
             }
         )
         tests.append("a self-signed certificate must be rejected")
         risk = "high"
-        action = "block"
+        action = "request_changes"
 
     return {
         "risk": risk,

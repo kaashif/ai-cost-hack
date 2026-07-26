@@ -82,7 +82,6 @@ class ScoreResult(TypedDict):
 
 class ModelClient(Protocol):
     calls: int
-    cost_usd: float
 
     def generate(
         self,

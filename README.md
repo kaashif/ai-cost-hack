@@ -30,3 +30,13 @@ Read:
 The public cases and rubrics are deliberately easy to inspect. Final ranking uses a
 private, harder dataset with the same schema. Quality is a pass/fail gate; the cheapest
 passing submission wins.
+
+## Model examples
+
+- [`examples/merge_only`](examples/merge_only/strategy.py) makes one GPT-5.5 call per
+  case through Merge Gateway.
+- [`examples/condense_merge`](examples/condense_merge/strategy.py) asks condense.chat to
+  compress the messages before making the same GPT-5.5 call through Merge.
+
+Both use the evaluator-owned client, omit the rubric from the model prompt, and return
+the same typed review contract as the starter.

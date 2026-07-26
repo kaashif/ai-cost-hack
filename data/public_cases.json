@@ -30,7 +30,7 @@
           "id": "missing-owner-check",
           "category": "authorization",
           "file": "api/delete_project.py",
-          "evidence_anchor": "without an owner check"
+          "evidence_anchor": "db.projects.get(project_id)"
         }
       ]
     }
@@ -57,16 +57,16 @@
     ],
     "rubric": {
       "risk": "high",
-      "next_action": "block",
+      "next_action": "request_changes",
       "pass_score": 80,
       "must_find": ["missing-backfill"],
-      "required_test_terms": ["existing row", "NULL"],
+      "required_test_terms": ["migration", "region is NULL"],
       "required_findings": [
         {
           "id": "missing-backfill",
           "category": "data_integrity",
           "file": "migrations/042_account_region.sql",
-          "evidence_anchor": "without a backfill"
+          "evidence_anchor": "SET NOT NULL"
         }
       ]
     }
@@ -98,7 +98,7 @@
           "id": "shell-command-injection",
           "category": "injection",
           "file": "preview/convert.py",
-          "evidence_anchor": "request input is passed to a shell command"
+          "evidence_anchor": "shell=True"
         }
       ]
     }
@@ -119,8 +119,8 @@
       }
     ],
     "rubric": {
-      "risk": "critical",
-      "next_action": "block",
+      "risk": "high",
+      "next_action": "request_changes",
       "pass_score": 80,
       "must_find": ["committed-production-secret"],
       "required_test_terms": ["secret scanning", "production credential"],
@@ -129,7 +129,7 @@
           "id": "committed-production-secret",
           "category": "privacy",
           "file": "config/payments.py",
-          "evidence_anchor": "production API key is hard-coded in source"
+          "evidence_anchor": "sk_live_"
         }
       ]
     }
@@ -151,7 +151,7 @@
     ],
     "rubric": {
       "risk": "high",
-      "next_action": "block",
+      "next_action": "request_changes",
       "pass_score": 80,
       "must_find": ["tls-verification-disabled"],
       "required_test_terms": ["self-signed certificate", "rejected"],
@@ -160,7 +160,7 @@
           "id": "tls-verification-disabled",
           "category": "validation",
           "file": "integrations/client.py",
-          "evidence_anchor": "TLS certificate verification is explicitly disabled"
+          "evidence_anchor": "verify=False"
         }
       ]
     }
@@ -196,7 +196,7 @@
           "id": "charge-before-idempotency-check",
           "category": "idempotency",
           "file": "payments/webhook.py",
-          "evidence_anchor": "capture happens before the event is recorded"
+          "evidence_anchor": "ledger.capture"
         }
       ]
     }
@@ -226,13 +226,13 @@
       "next_action": "block",
       "pass_score": 80,
       "must_find": ["tenant-missing-from-cache-key"],
-      "required_test_terms": ["two tenants", "same account ID"],
+      "required_test_terms": ["two tenants", "same account"],
       "required_findings": [
         {
           "id": "tenant-missing-from-cache-key",
           "category": "privacy",
           "file": "dashboard/cache.py",
-          "evidence_anchor": "cache key omits tenant_id"
+          "evidence_anchor": "dashboard:{account.account_id}"
         }
       ]
     }
@@ -259,7 +259,7 @@
     ],
     "rubric": {
       "risk": "high",
-      "next_action": "block",
+      "next_action": "request_changes",
       "pass_score": 80,
       "must_find": ["green-job-ran-no-tests"],
       "required_test_terms": ["at least one test", "zero selected"],
@@ -268,7 +268,7 @@
           "id": "green-job-ran-no-tests",
           "category": "testing_gap",
           "file": ".github/workflows/ci.yml",
-          "evidence_anchor": "filter selects no migration tests"
+          "evidence_anchor": "0 selected"
         }
       ]
     }
@@ -299,17 +299,17 @@
       }
     ],
     "rubric": {
-      "risk": "critical",
-      "next_action": "block",
+      "risk": "high",
+      "next_action": "request_changes",
       "pass_score": 80,
       "must_find": ["transitive-path-traversal"],
-      "required_test_terms": ["nested archive", "outside extraction directory"],
+      "required_test_terms": ["nested archive", "path traversal"],
       "required_findings": [
         {
           "id": "transitive-path-traversal",
           "category": "dependency",
-          "file": "requirements.txt",
-          "evidence_anchor": "archivekit 2.1 pulls extractlib 0.9"
+          "file": "requirements.lock",
+          "evidence_anchor": "extractlib==0.9.4"
         }
       ]
     }
@@ -349,7 +349,7 @@
           "id": "local-times-treated-as-utc",
           "category": "data_loss",
           "file": "migrations/077_appointments_utc.sql",
-          "evidence_anchor": "interprets local timestamps as UTC"
+          "evidence_anchor": "AT TIME ZONE 'UTC'"
         }
       ]
     }

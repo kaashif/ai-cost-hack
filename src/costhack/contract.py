@@ -62,7 +62,6 @@ class OfflineModelClient:
     """Model client used by the zero-spend public starter."""
 
     calls: int = 0
-    cost_usd: float = 0.0
 
     def generate(
         self,

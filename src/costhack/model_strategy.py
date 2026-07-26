@@ -1,0 +1,83 @@
+"""Shared implementation for the public Merge-powered examples."""
+
+from __future__ import annotations
+
+import json
+from typing import Literal, TypedDict
+
+from .contract import validate_review
+from .schema import Case, ContextSection, Message, ModelClient, Review
+
+MODEL = "openai/gpt-5.5"
+
+
+class VisibleCase(TypedDict):
+    title: str
+    brief: str
+    context: list[ContextSection]
+
+
+def _response_json(text: str) -> object:
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        first_newline = cleaned.find("\n")
+        if first_newline == -1:
+            raise ValueError("model returned an incomplete code fence")
+        cleaned = cleaned[first_newline + 1 :]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+    return json.loads(cleaned.strip())
+
+
+def review_with_model(
+    case: Case,
+    client: ModelClient,
+    *,
+    compression: Literal["none", "condense"],
+) -> Review:
+    visible_case: VisibleCase = {
+        "title": case["title"],
+        "brief": case["brief"],
+        "context": case["context"],
+    }
+    messages: list[Message] = [
+        {
+            "role": "system",
+            "content": (
+                "Review this proposed software change as a release gate. Return only one "
+                "JSON object with keys risk, findings, tests, and next_action. risk and "
+                "each finding severity must be low, medium, high, or critical. "
+                "next_action must be approve, request_changes, or block. findings must "
+                "be an array of at most 8 objects; each needs category, severity, file, "
+                "evidence, and explanation. tests must be an array of plain strings. "
+                "Use exact file paths and quote decisive code or context verbatim in "
+                "evidence. Use only these categories: authorization, authentication, "
+                "data_integrity, data_loss, dependency, idempotency, injection, "
+                "observability, privacy, race_condition, reliability, testing_gap, "
+                "validation. Map missing ownership checks to authorization; unsafe "
+                "schema changes to data_integrity; shell execution to injection; "
+                "committed secrets and cross-tenant disclosure to privacy; disabled TLS "
+                "verification to validation; duplicate retry side effects to "
+                "idempotency; tests that did not execute to testing_gap; vulnerable "
+                "transitive packages to dependency; and incorrect timezone conversion "
+                "to data_loss. Use block for an exploitable or destructive defect. "
+                "Use request_changes for a fixable high-risk release defect. Report the "
+                "root defect only; do not add a separate testing_gap finding merely "
+                "because tests failed to cover that same defect. Propose tests with "
+                "concrete inputs and expected outcomes. Avoid unsupported findings."
+            ),
+        },
+        {
+            "role": "user",
+            "content": json.dumps(visible_case, separators=(",", ":")),
+        },
+    ]
+    response = client.generate(
+        model=MODEL,
+        messages=messages,
+        max_output_tokens=1600,
+        compression=compression,
+        compression_rate=0.5 if compression == "condense" else None,
+        tags={"example": f"{compression}-gpt-5.5"},
+    )
+    return validate_review(_response_json(response["text"]))

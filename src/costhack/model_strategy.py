@@ -17,7 +17,7 @@ class VisibleCase(TypedDict):
     context: list[ContextSection]
 
 
-def _response_json(text: str) -> object:
+def parse_review(text: str) -> Review:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         first_newline = cleaned.find("\n")
@@ -26,21 +26,16 @@ def _response_json(text: str) -> object:
         cleaned = cleaned[first_newline + 1 :]
         if cleaned.endswith("```"):
             cleaned = cleaned[:-3]
-    return json.loads(cleaned.strip())
+    return validate_review(json.loads(cleaned.strip()))
 
 
-def review_with_model(
-    case: Case,
-    client: ModelClient,
-    *,
-    compression: Literal["none", "condense"],
-) -> Review:
+def review_messages(case: Case) -> list[Message]:
     visible_case: VisibleCase = {
         "title": case["title"],
         "brief": case["brief"],
         "context": case["context"],
     }
-    messages: list[Message] = [
+    return [
         {
             "role": "system",
             "content": (
@@ -72,12 +67,20 @@ def review_with_model(
             "content": json.dumps(visible_case, separators=(",", ":")),
         },
     ]
+
+
+def review_with_model(
+    case: Case,
+    client: ModelClient,
+    *,
+    compression: Literal["none", "condense"],
+) -> Review:
     response = client.generate(
         model=MODEL,
-        messages=messages,
+        messages=review_messages(case),
         max_output_tokens=1600,
         compression=compression,
         compression_rate=0.5 if compression == "condense" else None,
         tags={"example": f"{compression}-gpt-5.5"},
     )
-    return validate_review(_response_json(response["text"]))
+    return parse_review(response["text"])

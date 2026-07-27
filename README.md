@@ -37,6 +37,9 @@ passing submission wins.
   case through Merge Gateway.
 - [`examples/condense_merge`](examples/condense_merge/strategy.py) asks condense.chat to
   compress the messages before making the same GPT-5.5 call through Merge.
+- [`examples/condense_proxy`](examples/condense_proxy/strategy.py) demonstrates
+  Condense's OpenAI-compatible proxy with a direct upstream OpenAI key. It bypasses
+  Merge, so it is illustrative and not eligible for the official benchmark.
 
-Both use the evaluator-owned client, omit the rubric from the model prompt, and return
-the same typed review contract as the starter.
+The official Merge examples use the evaluator-owned client. All examples omit the rubric
+from the model prompt and return the same typed review contract as the starter.

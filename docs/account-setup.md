@@ -73,8 +73,9 @@ CONDENSE_AUTH_TOKEN=ak_replace_me
 
 The condense key travels in `X-Condense-Auth-Token`. For this event, request Rewrite API
 access so condense can return compressed messages without making the final model call.
-Send those messages through the evaluator-owned Merge client. Do not configure a direct
-OpenAI or Anthropic proxy because it would bypass event cost accounting.
+Send those messages through Merge using the supplied `mg_` key, either with the provided
+client or your own Merge client. Do not configure a direct OpenAI or Anthropic proxy
+because it would bypass event cost accounting.
 
 ## Safety check
 

@@ -60,7 +60,7 @@ remain on Merge Gateway.
 You may not:
 
 - access the hidden data except through the evaluator;
-- make undeclared or unmetered paid model calls;
+- make remote inference calls outside Merge Gateway;
 - branch on public case IDs to hard-code answers;
 - alter the evaluator or usage ledger;
 - send hidden content to an unapproved endpoint;

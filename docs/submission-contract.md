@@ -17,8 +17,9 @@ from costhack.schema import Case, ModelClient, Review
 def review(case: Case, client: ModelClient) -> Review: ...
 ```
 
-`case` is JSON-compatible and follows the public case schema. `client` is an
-evaluator-owned, metered model client. Do not construct your own paid provider client.
+`case` is JSON-compatible and follows the public case schema. `client` is a convenient
+evaluator-provided Merge Gateway client. You may instead construct your own Merge client
+using the supplied `mg_` key.
 
 ## Model client
 
@@ -108,12 +109,12 @@ them.
 
 - At most 8 findings per case.
 - Evidence must be grounded in supplied context.
-- Model calls must go through `client`.
+- Remote inference calls must use Merge Gateway and the supplied `mg_` key.
 - The evaluator may execute strategy code without general network access.
 - Invalid output receives zero quality for the case.
 
 The repository includes only two complete strategies: the Python rules starter and the
 GPT-5.5-through-Merge example. condense.chat is an optional optimization, not a third
 example. If event Rewrite API access is available, compress selected long inputs before
-calling the same GPT-5.5 model through this evaluator-owned client. Never move the final
-model call off Merge Gateway.
+calling the same GPT-5.5 model through Merge. Never move the final model call off Merge
+Gateway.

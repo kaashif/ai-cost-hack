@@ -69,8 +69,9 @@ def review(case: Case, client: ModelClient) -&gt; Review:
     ...</code></pre>
             <p>
               You may use deterministic rules, the evaluator-provided model client, or
-              both. The final evaluator uses harder private cases. Every paid call must
-              go through <code>client</code> so it can be measured.
+              both. You may also build your own Merge client with the supplied
+              <code>mg_</code> key. The final evaluator uses harder private cases. Every
+              remote inference call must use Merge Gateway so its cost is measured there.
             </p>
           </section>
 
@@ -293,7 +294,7 @@ git rev-parse HEAD</code></pre>
             <h3>You may not</h3>
             <ul>
               <li>Use hidden answers or hidden case IDs.</li>
-              <li>Make unmetered paid model calls.</li>
+              <li>Make remote inference calls outside Merge Gateway.</li>
               <li>Fabricate usage data or alter the scorer.</li>
               <li>Send hidden evaluation data elsewhere.</li>
             </ul>

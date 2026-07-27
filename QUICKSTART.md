@@ -56,9 +56,10 @@ def review(case, client):
     }
 ```
 
-You may call `client.generate(...)`, use deterministic rules, or combine both. All model
-calls made through the supplied client are metered. Unmetered external model calls are
-not allowed.
+You may call `client.generate(...)`, construct your own Merge Gateway client with the
+supplied `mg_` key, use deterministic rules, or combine them. Every remote inference call
+must use Merge Gateway so its cost appears in Merge. Other inference endpoints are not
+allowed.
 
 Two complete examples are included:
 

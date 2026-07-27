@@ -152,34 +152,10 @@ li + li {
   backdrop-filter: blur(12px);
 }
 
-.site-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-  color: var(--text);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.32rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.logo-mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  color: var(--canvas);
-  background: var(--yellow);
-  border-radius: 8px;
-  font-family: "SFMono-Regular", Consolas, monospace;
-  font-size: 0.9rem;
-  box-shadow: 3px 3px 0 var(--accent-soft);
-}
-
 .site-subtitle {
-  margin-left: 0.8rem;
   color: var(--muted);
   font-size: 0.84rem;
+  font-weight: 600;
 }
 
 .site-header nav {

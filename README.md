@@ -41,7 +41,7 @@ passing submission wins.
 Both use the evaluator-owned interface and return the same typed review contract.
 
 After establishing a passing strategy, consider condense.chat for long, noisy cases.
-Compare the same prompt and GPT-5.5 model with and without compression, then use Merge's
-per-key usage as the authoritative cost. Compression is most promising when history is
-large; it may add latency without helping short cases. The event needs Condense Rewrite
-API access so compressed messages can still be sent through Merge.
+Compare the same prompt and GPT-5.5 model with and without compression, then use recorded
+usage rather than a local estimate. Compression is most promising when history is large;
+it may add latency without helping short cases. Model inference may run through Merge
+Gateway or condense.chat.

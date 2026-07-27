@@ -44,27 +44,19 @@ You may:
 - route through Merge Gateway;
 - compress context with condense.chat;
 - retrieve or select only relevant sections;
-- use rules, caching, local inference, or no model at all;
+- use rules, caching, or no model at all;
 - make multiple metered calls when the extra quality is worth the cost.
 
 Suggested condense.chat experiment:
 
 1. Build a passing GPT-5.5-through-Merge baseline.
 1. Compress only long or noisy case context with condense.chat.
-1. Send the compressed messages to the same GPT-5.5 model through Merge.
-1. Compare quality, latency, and Merge-reported cost against the uncompressed run.
+1. Try Condense's proxy or send rewritten messages through Merge.
+1. Compare quality, latency, and recorded cost against the uncompressed run.
 
-Do not route the final model call through Condense's provider proxy. All inference must
-remain on Merge Gateway.
+## Rule
 
-You may not:
-
-- access the hidden data except through the evaluator;
-- make remote inference calls outside Merge Gateway;
-- branch on public case IDs to hard-code answers;
-- alter the evaluator or usage ledger;
-- send hidden content to an unapproved endpoint;
-- return invalid or fabricated usage data.
+Model inference must run through Merge Gateway or condense.chat.
 
 ## Scoring
 
@@ -87,9 +79,9 @@ must pass quality before its cost is considered.
 
 ### 2. Cost ranking
 
-Among eligible submissions, the lowest total accounted cost wins. The ledger includes
-every model and compression call made through the evaluator. Raw token count is not the
-score: destroying a provider's prompt cache can save tokens and still cost more.
+Among eligible submissions, the lowest total accounted cost wins. Use the official usage
+records for Merge Gateway and condense.chat calls. Raw token count is not the score:
+destroying a provider's prompt cache can save tokens and still cost more.
 
 Close results may be rerun. Published tie-breaks are:
 

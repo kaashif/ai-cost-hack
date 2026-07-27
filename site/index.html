@@ -69,9 +69,9 @@ def review(case: Case, client: ModelClient) -&gt; Review:
     ...</code></pre>
             <p>
               You may use deterministic rules, the evaluator-provided model client, or
-              both. You may also build your own Merge client with the supplied
-              <code>mg_</code> key. The final evaluator uses harder private cases. Every
-              remote inference call must use Merge Gateway so its cost is measured there.
+              both. You may also build your own Merge Gateway or condense.chat client.
+              The final evaluator uses harder private cases. The only inference rule is
+              that model inference must run through Merge Gateway or condense.chat.
             </p>
           </section>
 
@@ -178,8 +178,7 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
               <p>
                 Once quality is reliable, consider condense.chat for long, noisy cases.
                 Compare compressed and uncompressed inputs with the same prompt and
-                GPT-5.5 model, and use Merge's recorded usage as the cost. The final model
-                call must remain on Merge Gateway.
+                GPT-5.5 model. You can use Condense's proxy or Rewrite API.
               </p>
             </div>
           </section>
@@ -283,21 +282,8 @@ git rev-parse HEAD</code></pre>
           </section>
 
           <section id="rules">
-            <h2>Rules</h2>
-            <h3>You may</h3>
-            <ul>
-              <li>Route across approved models.</li>
-              <li>Compress, retrieve, or discard context.</li>
-              <li>Combine deterministic rules with model calls.</li>
-              <li>Skip model calls when the supplied evidence is sufficient.</li>
-            </ul>
-            <h3>You may not</h3>
-            <ul>
-              <li>Use hidden answers or hidden case IDs.</li>
-              <li>Make remote inference calls outside Merge Gateway.</li>
-              <li>Fabricate usage data or alter the scorer.</li>
-              <li>Send hidden evaluation data elsewhere.</li>
-            </ul>
+            <h2>Rule</h2>
+            <p>Model inference must run through Merge Gateway or condense.chat.</p>
           </section>
 
           <nav class="next-links" aria-label="Further documentation">

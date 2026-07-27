@@ -56,10 +56,9 @@ def review(case, client):
     }
 ```
 
-You may call `client.generate(...)`, construct your own Merge Gateway client with the
-supplied `mg_` key, use deterministic rules, or combine them. Every remote inference call
-must use Merge Gateway so its cost appears in Merge. Other inference endpoints are not
-allowed.
+You may call `client.generate(...)`, construct your own Merge Gateway or condense.chat
+client, use deterministic rules, or combine them. The only inference rule is that model
+inference must run through Merge Gateway or condense.chat.
 
 Two complete examples are included:
 
@@ -73,9 +72,8 @@ cp examples/merge_only/strategy.py submission/strategy.py
 ```
 
 Once quality is reliable, try condense.chat on long or noisy inputs. Keep GPT-5.5 and the
-prompt fixed, compare compressed and uncompressed runs, and read cost from Merge rather
-than estimating it locally. Condense compression requires event-provided Rewrite API
-access; direct Condense proxy calls are not allowed because inference must stay on Merge.
+prompt fixed, compare compressed and uncompressed runs, and use recorded usage rather
+than estimating cost locally. You can use Condense's proxy or its Rewrite API.
 
 ## 5. Set up sponsor accounts
 

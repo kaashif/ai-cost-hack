@@ -1,7 +1,6 @@
 """Starter strategy.
 
 Replace this with your own routing, compression, rules, or metered model calls.
-Do not branch on case IDs: hidden cases use different IDs and harder combinations.
 """
 
 from __future__ import annotations

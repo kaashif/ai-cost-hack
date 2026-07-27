@@ -47,6 +47,16 @@ You may:
 - use rules, caching, local inference, or no model at all;
 - make multiple metered calls when the extra quality is worth the cost.
 
+Suggested condense.chat experiment:
+
+1. Build a passing GPT-5.5-through-Merge baseline.
+1. Compress only long or noisy case context with condense.chat.
+1. Send the compressed messages to the same GPT-5.5 model through Merge.
+1. Compare quality, latency, and Merge-reported cost against the uncompressed run.
+
+Do not route the final model call through Condense's provider proxy. All inference must
+remain on Merge Gateway.
+
 You may not:
 
 - access the hidden data except through the evaluator;

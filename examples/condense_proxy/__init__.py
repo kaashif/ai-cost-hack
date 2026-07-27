@@ -1,1 +1,0 @@
-"""Direct Condense proxy demonstration."""

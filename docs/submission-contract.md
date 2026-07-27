@@ -26,7 +26,7 @@ The stable method is:
 
 ```python
 client.generate(
-    model="default_routing",
+    model="openai/gpt-5.5",
     messages=[
         {"role": "system", "content": "..."},
         {"role": "user", "content": "..."},
@@ -111,3 +111,9 @@ them.
 - Model calls must go through `client`.
 - The evaluator may execute strategy code without general network access.
 - Invalid output receives zero quality for the case.
+
+The repository includes only two complete strategies: the Python rules starter and the
+GPT-5.5-through-Merge example. condense.chat is an optional optimization, not a third
+example. If event Rewrite API access is available, compress selected long inputs before
+calling the same GPT-5.5 model through this evaluator-owned client. Never move the final
+model call off Merge Gateway.

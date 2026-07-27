@@ -31,15 +31,17 @@ The public cases and rubrics are deliberately easy to inspect. Final ranking use
 private, harder dataset with the same schema. Quality is a pass/fail gate; the cheapest
 passing submission wins.
 
-## Model examples
+## Examples
 
-- [`examples/merge_only`](examples/merge_only/strategy.py) makes one GPT-5.5 call per
-  case through Merge Gateway.
-- [`examples/condense_merge`](examples/condense_merge/strategy.py) asks condense.chat to
-  compress the messages before making the same GPT-5.5 call through Merge.
-- [`examples/condense_proxy`](examples/condense_proxy/strategy.py) demonstrates
-  Condense's OpenAI-compatible proxy with a direct upstream OpenAI key. It bypasses
-  Merge, so it is illustrative and not eligible for the official benchmark.
+- [`submission/strategy.py`](submission/strategy.py) is the zero-cost Python rules
+  baseline. It catches five of ten public cases.
+- [`examples/merge_only/strategy.py`](examples/merge_only/strategy.py) makes one GPT-5.5
+  call per case through Merge Gateway.
 
-The official Merge examples use the evaluator-owned client. All examples omit the rubric
-from the model prompt and return the same typed review contract as the starter.
+Both use the evaluator-owned interface and return the same typed review contract.
+
+After establishing a passing strategy, consider condense.chat for long, noisy cases.
+Compare the same prompt and GPT-5.5 model with and without compression, then use Merge's
+per-key usage as the authoritative cost. Compression is most promising when history is
+large; it may add latency without helping short cases. The event needs Condense Rewrite
+API access so compressed messages can still be sent through Merge.

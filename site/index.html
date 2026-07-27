@@ -163,7 +163,7 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
                 another paid provider client.
               </p>
               <pre><code>response = client.generate(
-    model="default_routing",
+    model="openai/gpt-5.5",
     messages=[
         {"role": "system", "content": "Review this change."},
         {"role": "user", "content": case["brief"]},
@@ -172,6 +172,18 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
     compression="none",
     tags={"stage": "review"},
 )</code></pre>
+              <p>
+                There are two complete starting points:
+                <code>submission/strategy.py</code> contains the 50% Python rules
+                baseline, and <code>examples/merge_only/strategy.py</code> contains the
+                GPT-5.5-through-Merge strategy.
+              </p>
+              <p>
+                Once quality is reliable, consider condense.chat for long, noisy cases.
+                Compare compressed and uncompressed inputs with the same prompt and
+                GPT-5.5 model, and use Merge's recorded usage as the cost. The final model
+                call must remain on Merge Gateway.
+              </p>
             </div>
           </section>
 

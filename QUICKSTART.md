@@ -60,6 +60,22 @@ You may call `client.generate(...)`, use deterministic rules, or combine both. A
 calls made through the supplied client are metered. Unmetered external model calls are
 not allowed.
 
+Two complete examples are included:
+
+- `submission/strategy.py`: local Python rules, 50% public quality, zero model calls.
+- `examples/merge_only/strategy.py`: one GPT-5.5 call per case through Merge Gateway.
+
+To start from GPT-5.5:
+
+```bash
+cp examples/merge_only/strategy.py submission/strategy.py
+```
+
+Once quality is reliable, try condense.chat on long or noisy inputs. Keep GPT-5.5 and the
+prompt fixed, compare compressed and uncompressed runs, and read cost from Merge rather
+than estimating it locally. Condense compression requires event-provided Rewrite API
+access; direct Condense proxy calls are not allowed because inference must stay on Merge.
+
 ## 5. Set up sponsor accounts
 
 Follow [the account setup guide](docs/account-setup.md). Keep secrets in `.env`; never

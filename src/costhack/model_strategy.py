@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Literal, TypedDict
+from typing import TypedDict
 
 from .contract import validate_review
 from .schema import Case, ContextSection, Message, ModelClient, Review
@@ -69,18 +69,12 @@ def review_messages(case: Case) -> list[Message]:
     ]
 
 
-def review_with_model(
-    case: Case,
-    client: ModelClient,
-    *,
-    compression: Literal["none", "condense"],
-) -> Review:
+def review_with_model(case: Case, client: ModelClient) -> Review:
     response = client.generate(
         model=MODEL,
         messages=review_messages(case),
         max_output_tokens=1600,
-        compression=compression,
-        compression_rate=0.5 if compression == "condense" else None,
-        tags={"example": f"{compression}-gpt-5.5"},
+        compression="none",
+        tags={"example": "merge-gpt-5.5"},
     )
     return parse_review(response["text"])

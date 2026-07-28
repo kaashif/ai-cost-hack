@@ -35,6 +35,7 @@
           <a href="#accounts">6. Sponsor accounts</a>
           <a href="#validate">7. Validate</a>
           <a href="#submit">8. Submit</a>
+          <a href="#scoring">Scoring</a>
           <a href="#rules">Rules</a>
         </nav>
       </aside>
@@ -46,7 +47,7 @@
           <p class="lead">
             Build the lowest-cost AI release reviewer that still catches dangerous
             software changes. Pass the quality gate first; among passing submissions,
-            lowest accounted cost wins.
+            the lowest cost measured by Merge Gateway wins.
           </p>
 
           <div class="note">
@@ -69,9 +70,10 @@ def review(case: Case, client: ModelClient) -&gt; Review:
     ...</code></pre>
             <p>
               You may use deterministic rules, the evaluator-provided model client, or
-              both. You may also build your own Merge Gateway or condense.chat client.
-              The final evaluator uses harder private cases. The only inference rule is
-              that model inference must run through Merge Gateway or condense.chat.
+              both. You may also build your own Merge Gateway client and optionally use
+              condense.chat to preprocess model inputs. The final evaluator uses harder
+              private cases. All scored model inference must run through Merge Gateway
+              so its cost can be measured consistently.
             </p>
           </section>
 
@@ -178,7 +180,9 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
               <p>
                 Once quality is reliable, consider condense.chat for long, noisy cases.
                 Compare compressed and uncompressed inputs with the same prompt and
-                GPT-5.5 model. You can use Condense's proxy or Rewrite API.
+                GPT-5.5 model. You can use Condense's Rewrite API, but send the resulting
+                model request through Merge Gateway so its cost is included in the
+                official measurement.
               </p>
             </div>
           </section>
@@ -193,6 +197,10 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
               </p>
 
               <h3>Merge Gateway</h3>
+              <div class="note">
+                <strong>New Merge Gateway accounts include $10 in free credit.</strong>
+                You can use this credit for model calls during the hackathon.
+              </div>
               <ol>
                 <li>
                   Open
@@ -281,9 +289,36 @@ git rev-parse HEAD</code></pre>
             </div>
           </section>
 
+          <section id="scoring">
+            <h2>Scoring</h2>
+            <p>Scoring happens in two stages:</p>
+            <ol>
+              <li>
+                <strong>Pass the quality gate.</strong> Your reviewer must catch the
+                required dangerous changes on the private benchmark. Cost is considered
+                only for submissions that pass.
+              </li>
+              <li>
+                <strong>Rank by Merge Gateway cost.</strong> Among passing submissions,
+                the winner is the entry with the lowest total model cost recorded by
+                Merge Gateway during the official benchmark run.
+              </li>
+            </ol>
+            <div class="note">
+              <strong>Merge Gateway is the source of truth for cost.</strong>
+              We do not score local estimates, raw token counts, provider price tables,
+              or costs reported by participant code. Deterministic local computation
+              adds no model cost; every scored model request must appear in the official
+              Merge Gateway usage record.
+            </div>
+          </section>
+
           <section id="rules">
-            <h2>Rule</h2>
-            <p>Model inference must run through Merge Gateway or condense.chat.</p>
+            <h2>Rules</h2>
+            <p>
+              All scored model inference must run through Merge Gateway. Optional
+              preprocessing, including condense.chat, does not replace this requirement.
+            </p>
           </section>
 
           <nav class="next-links" aria-label="Further documentation">

@@ -74,8 +74,9 @@ cp examples/merge_only/strategy.py submission/strategy.py
 ```
 
 Once quality is reliable, try condense.chat on long or noisy inputs. Keep GPT-5.5 and the
-prompt fixed and compare compressed and uncompressed runs. Go to
-[condense.chat](https://condense.chat/) and follow the instructions on the website.
+prompt fixed and compare compressed and uncompressed runs. You can run Codex or Claude
+Code through the `dense` CLI, call models through the supported proxy API, or use both.
+See the [account setup guide](docs/account-setup.md) for the two options.
 
 ## 5. Set up sponsor accounts
 

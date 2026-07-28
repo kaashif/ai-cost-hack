@@ -39,7 +39,49 @@ Expected result: `200`.
 
 ## condense.chat
 
-Go to [condense.chat](https://condense.chat/) and follow the instructions on the website.
+Start at [condense.chat](https://condense.chat/). There are two supported options, and
+you may use either or both.
+
+### Coding agents
+
+Follow the [agent setup instructions](https://condense.chat/docs/), then run Codex or
+Claude Code through the `dense` CLI:
+
+```bash
+dense codex
+dense claude
+```
+
+The agent keeps its normal authentication while Condense proxies its requests.
+
+### Proxy API
+
+For direct model calls, point an OpenAI-compatible client at the Condense proxy. Supply
+both your upstream provider key and your Condense token:
+
+```python
+import os
+
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="https://api.condense.chat/openai/v1",
+    default_headers={
+        "X-Condense-Auth-Token": os.environ["CONDENSE_AUTH_TOKEN"],
+    },
+)
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Review this change."}],
+)
+```
+
+The standard OpenAI request methods continue to work. Anthropic users can follow the
+equivalent example in the [Condense quickstart](https://condense.chat/docs/quickstart/).
+
+Proxy calls use the upstream provider account and do not automatically appear in Merge
+Gateway. Only model cost recorded by Merge Gateway is included in the hackathon score.
 
 ## Safety check
 

@@ -108,16 +108,60 @@ def review(case: Case) -&gt; Review:
 
               <h3>condense.chat</h3>
               <p>
-                Go to <a href="https://condense.chat/">condense.chat</a> and follow the
-                instructions on the website.
+                Start at <a href="https://condense.chat/">condense.chat</a>. There are two
+                supported ways to use it, and you may use either or both.
               </p>
+              <h4>Option 1: Run a coding agent through Condense</h4>
+              <p>
+                Install and sign in to the <code>dense</code> CLI by following the
+                <a href="https://condense.chat/docs/">agent setup instructions</a>. Then
+                launch Codex or Claude Code through Condense:
+              </p>
+              <pre><code>dense codex
+dense claude</code></pre>
+              <p>
+                This keeps the agent's normal authentication and routes its requests
+                through the Condense proxy.
+              </p>
+              <h4>Option 2: Call models through the proxy API</h4>
+              <p>
+                Point an OpenAI-compatible client at Condense, supply your normal
+                upstream provider key, and add your Condense token:
+              </p>
+              <pre><code>import os
+
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="https://api.condense.chat/openai/v1",
+    default_headers={
+        "X-Condense-Auth-Token": os.environ["CONDENSE_AUTH_TOKEN"],
+    },
+)
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Review this change."}],
+)</code></pre>
+              <p>
+                The standard OpenAI request methods continue to work. Anthropic users can
+                follow the equivalent proxy example in the
+                <a href="https://condense.chat/docs/quickstart/">Condense quickstart</a>.
+              </p>
+              <div class="warning">
+                <strong>Proxy calls use your upstream provider account.</strong>
+                They do not automatically appear in Merge Gateway. Only model cost
+                recorded by Merge Gateway is included in the hackathon score.
+              </div>
 
               <h3>Store credentials locally</h3>
               <pre><code>cp .env.example .env
 chmod 600 .env</code></pre>
               <p>Edit <code>.env</code>:</p>
               <pre><code>MERGE_GATEWAY_API_KEY=mg_replace_me
-MERGE_GATEWAY_PROJECT_ID=replace_me</code></pre>
+MERGE_GATEWAY_PROJECT_ID=replace_me
+CONDENSE_AUTH_TOKEN=ak_replace_me
+OPENAI_API_KEY=sk_replace_me</code></pre>
               <div class="warning">
                 <strong>Never commit <code>.env</code>.</strong>
                 If a secret is committed, revoke it immediately. Removing it from the
@@ -241,9 +285,10 @@ response = client.chat.completions.create(
               </p>
               <p>
                 Once quality is reliable, consider condense.chat for long, noisy cases.
-                Go to the condense.chat website and follow its current instructions.
-                Scored model inference must still appear in Merge Gateway so its cost is
-                included in the official measurement.
+                Use the <code>dense</code> CLI with Codex or Claude Code, or call models
+                through Condense's supported proxy API. Scored model inference must still
+                appear in Merge Gateway so its cost is included in the official
+                measurement.
               </p>
             </div>
           </section>

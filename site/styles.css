@@ -293,29 +293,6 @@ section {
   box-shadow: 3px 3px 0 var(--pink);
 }
 
-.next-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  padding-top: 2.25rem;
-}
-
-.next-links a {
-  padding: 0.62rem 0.85rem;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.next-links a:hover,
-.next-links a:focus-visible {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
-
 @media (max-width: 900px) {
   .site-header {
     position: static;

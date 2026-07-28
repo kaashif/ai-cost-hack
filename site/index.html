@@ -27,12 +27,12 @@
         <p class="sidebar-summary">Everything you need to make and submit an entry.</p>
         <nav aria-label="Guide sections">
           <a href="#overview">Overview</a>
-          <a href="#prerequisites">1. Prerequisites</a>
-          <a href="#clone">2. Clone the starter</a>
-          <a href="#benchmark">3. Run the benchmark</a>
-          <a href="#inspect">4. Inspect a case</a>
-          <a href="#strategy">5. Edit your strategy</a>
-          <a href="#accounts">6. Sponsor accounts</a>
+          <a href="#accounts">1. Sponsor accounts</a>
+          <a href="#prerequisites">2. Prerequisites</a>
+          <a href="#clone">3. Clone the starter</a>
+          <a href="#benchmark">4. Run the benchmark</a>
+          <a href="#inspect">5. Inspect a case</a>
+          <a href="#strategy">6. Edit your strategy</a>
           <a href="#validate">7. Validate</a>
           <a href="#submit">8. Submit</a>
           <a href="#scoring">Scoring</a>
@@ -77,123 +77,13 @@ def review(case: Case, client: ModelClient) -&gt; Review:
             </p>
           </section>
 
-          <section id="prerequisites" class="step">
-            <span class="step-number">1</span>
-            <div>
-              <h2>Install the prerequisites</h2>
-              <p>You need:</p>
-              <ul>
-                <li>Git</li>
-                <li>Python 3.11 or newer</li>
-                <li><a href="https://docs.astral.sh/uv/">uv</a></li>
-              </ul>
-              <p>Check them:</p>
-              <pre><code>git --version
-python3 --version
-uv --version</code></pre>
-            </div>
-          </section>
-
-          <section id="clone" class="step">
-            <span class="step-number">2</span>
-            <div>
-              <h2>Clone the starter</h2>
-              <pre><code>git clone https://github.com/kaashif/ai-cost-hack.git
-cd ai-cost-hack
-uv sync</code></pre>
-              <p>
-                This installs the benchmark CLI and development tools from the committed
-                lockfile.
-              </p>
-            </div>
-          </section>
-
-          <section id="benchmark" class="step">
-            <span class="step-number">3</span>
-            <div>
-              <h2>Run the public benchmark</h2>
-              <pre><code>uv run costhack benchmark --public</code></pre>
-              <p>The deliberately incomplete starter should report:</p>
-              <pre><code>NOT ELIGIBLE  quality=50.0  model_calls=0
-Public cost is $0.00 because the starter strategy is local.</code></pre>
-              <p>
-                The starter catches five of ten cases. The examples demonstrate the
-                input, output, and scoring contract without revealing the final test set.
-              </p>
-            </div>
-          </section>
-
-          <section id="inspect" class="step">
-            <span class="step-number">4</span>
-            <div>
-              <h2>Inspect a public case</h2>
-              <pre><code>uv run costhack inspect public-auth-delete</code></pre>
-              <p>
-                Read <code>data/public_cases.json</code> to see the complete public case
-                schema. Public cases include their rubrics; private cases do not.
-              </p>
-            </div>
-          </section>
-
-          <section id="strategy" class="step">
-            <span class="step-number">5</span>
-            <div>
-              <h2>Edit your strategy</h2>
-              <p>
-                Open <code>submission/strategy.py</code>. Keep the
-                <code>review(case, client)</code> entry point and return this shape:
-              </p>
-              <pre><code>{
-    "risk": "high",
-    "findings": [
-        {
-            "category": "authorization",
-            "severity": "high",
-            "file": "api/delete_project.py",
-            "evidence": "The project is loaded without an owner check.",
-            "explanation": "A user can delete another tenant's project.",
-        }
-    ],
-    "tests": ["Cross-tenant deletion must return 403"],
-    "next_action": "block",
-}</code></pre>
-              <p>
-                If you use a model, call <code>client.generate(...)</code>. Do not create
-                another paid provider client.
-              </p>
-              <pre><code>response = client.generate(
-    model="openai/gpt-5.5",
-    messages=[
-        {"role": "system", "content": "Review this change."},
-        {"role": "user", "content": case["brief"]},
-    ],
-    max_output_tokens=1200,
-    compression="none",
-    tags={"stage": "review"},
-)</code></pre>
-              <p>
-                There are two complete starting points:
-                <code>submission/strategy.py</code> contains the deterministic Python
-                rules baseline, and <code>examples/merge_only/strategy.py</code> contains
-                the GPT-5.5-through-Merge strategy.
-              </p>
-              <p>
-                Once quality is reliable, consider condense.chat for long, noisy cases.
-                Compare compressed and uncompressed inputs with the same prompt and
-                GPT-5.5 model. You can use Condense's Rewrite API, but send the resulting
-                model request through Merge Gateway so its cost is included in the
-                official measurement.
-              </p>
-            </div>
-          </section>
-
           <section id="accounts" class="step">
-            <span class="step-number">6</span>
+            <span class="step-number">1</span>
             <div>
               <h2>Set up the sponsor accounts</h2>
               <p>
-                Skip this section until you want to make live model calls. If the event
-                gives you credentials, use those instead of creating separate ones.
+                You can skip this section until you want to make live model calls. If the
+                event gives you credentials, use those instead of creating separate ones.
               </p>
 
               <h3>Merge Gateway</h3>
@@ -255,6 +145,116 @@ CONDENSE_AUTH_TOKEN=ak_replace_me</code></pre>
                 If a secret is committed, revoke it immediately. Removing it from the
                 latest commit does not remove it from Git history.
               </div>
+            </div>
+          </section>
+
+          <section id="prerequisites" class="step">
+            <span class="step-number">2</span>
+            <div>
+              <h2>Install the prerequisites</h2>
+              <p>You need:</p>
+              <ul>
+                <li>Git</li>
+                <li>Python 3.11 or newer</li>
+                <li><a href="https://docs.astral.sh/uv/">uv</a></li>
+              </ul>
+              <p>Check them:</p>
+              <pre><code>git --version
+python3 --version
+uv --version</code></pre>
+            </div>
+          </section>
+
+          <section id="clone" class="step">
+            <span class="step-number">3</span>
+            <div>
+              <h2>Clone the starter</h2>
+              <pre><code>git clone https://github.com/kaashif/ai-cost-hack.git
+cd ai-cost-hack
+uv sync</code></pre>
+              <p>
+                This installs the benchmark CLI and development tools from the committed
+                lockfile.
+              </p>
+            </div>
+          </section>
+
+          <section id="benchmark" class="step">
+            <span class="step-number">4</span>
+            <div>
+              <h2>Run the public benchmark</h2>
+              <pre><code>uv run costhack benchmark --public</code></pre>
+              <p>The deliberately incomplete starter should report:</p>
+              <pre><code>NOT ELIGIBLE  quality=50.0  model_calls=0
+Public cost is $0.00 because the starter strategy is local.</code></pre>
+              <p>
+                The starter catches five of ten cases. The examples demonstrate the
+                input, output, and scoring contract without revealing the final test set.
+              </p>
+            </div>
+          </section>
+
+          <section id="inspect" class="step">
+            <span class="step-number">5</span>
+            <div>
+              <h2>Inspect a public case</h2>
+              <pre><code>uv run costhack inspect public-auth-delete</code></pre>
+              <p>
+                Read <code>data/public_cases.json</code> to see the complete public case
+                schema. Public cases include their rubrics; private cases do not.
+              </p>
+            </div>
+          </section>
+
+          <section id="strategy" class="step">
+            <span class="step-number">6</span>
+            <div>
+              <h2>Edit your strategy</h2>
+              <p>
+                Open <code>submission/strategy.py</code>. Keep the
+                <code>review(case, client)</code> entry point and return this shape:
+              </p>
+              <pre><code>{
+    "risk": "high",
+    "findings": [
+        {
+            "category": "authorization",
+            "severity": "high",
+            "file": "api/delete_project.py",
+            "evidence": "The project is loaded without an owner check.",
+            "explanation": "A user can delete another tenant's project.",
+        }
+    ],
+    "tests": ["Cross-tenant deletion must return 403"],
+    "next_action": "block",
+}</code></pre>
+              <p>
+                If you use a model, call <code>client.generate(...)</code>. Do not create
+                another paid provider client.
+              </p>
+              <pre><code>response = client.generate(
+    model="openai/gpt-5.5",
+    messages=[
+        {"role": "system", "content": "Review this change."},
+        {"role": "user", "content": case["brief"]},
+    ],
+    max_output_tokens=1200,
+    compression="none",
+    tags={"stage": "review"},
+)</code></pre>
+              <p>
+                There are two complete starting points:
+                <code>submission/strategy.py</code> contains the deterministic Python
+                rules baseline, and <code>examples/merge_only/strategy.py</code> contains
+                the GPT-5.5-through-Merge strategy.
+              </p>
+              <p>
+                Once quality is reliable, consider condense.chat for long, noisy cases.
+                Compare compressed and uncompressed inputs with the same prompt and
+                GPT-5.5 model. You can use Condense's Rewrite API, but send the resulting
+                model request through Merge Gateway so its cost is included in the
+                official measurement.
+              </p>
             </div>
           </section>
 

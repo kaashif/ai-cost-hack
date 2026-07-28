@@ -5,16 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Step-by-step participant guide for the London event."
+      content="Instructions and scoring for the London AI Cost Hackathon."
     />
-    <title>Getting started · London</title>
+    <title>The London AI Cost Hackathon</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>
 
     <header class="site-header">
-      <span class="site-subtitle">Participant guide</span>
       <nav aria-label="External links">
         <a href="https://github.com/kaashif/ai-cost-hack">GitHub</a>
         <a href="https://luma.com/i29x7bkv">Event</a>
@@ -23,30 +22,32 @@
 
     <div class="docs-layout" id="top">
       <aside class="sidebar">
-        <p class="sidebar-title">On this page</p>
-        <p class="sidebar-summary">Everything you need to make and submit an entry.</p>
         <nav aria-label="Guide sections">
           <a href="#overview">Overview</a>
-          <a href="#prerequisites">1. Prerequisites</a>
-          <a href="#clone">2. Clone the starter</a>
-          <a href="#benchmark">3. Run the benchmark</a>
-          <a href="#inspect">4. Inspect a case</a>
-          <a href="#strategy">5. Edit your strategy</a>
-          <a href="#accounts">6. Sponsor accounts</a>
+          <a href="#accounts">1. Sponsor accounts</a>
+          <a href="#prerequisites">2. Prerequisites</a>
+          <a href="#clone">3. Fork and clone</a>
+          <a href="#benchmark">4. Run the benchmark</a>
+          <a href="#inspect">5. Inspect a case</a>
+          <a href="#strategy">6. Edit your strategy</a>
           <a href="#validate">7. Validate</a>
           <a href="#submit">8. Submit</a>
-          <a href="#rules">Rules</a>
+          <a href="#scoring">Scoring</a>
         </nav>
       </aside>
 
       <main id="content">
         <article>
-          <p class="eyebrow">London · Thursday 30 July · £100 prize</p>
-          <h1>Getting started</h1>
+          <h1>The London AI Cost Hackathon</h1>
+          <div class="note agent-note">
+            <strong>Using a coding agent?</strong>
+            Point it at this page and ask it to follow the setup and submission
+            instructions.
+          </div>
           <p class="lead">
-            Build the lowest-cost AI release reviewer that still catches dangerous
-            software changes. Pass the quality gate first; among passing submissions,
-            lowest accounted cost wins.
+            Build an AI reviewer that catches dangerous software changes. Submissions
+            must pass the quality gate, and the lowest cost measured by Merge Gateway
+            wins.
           </p>
 
           <div class="note">
@@ -63,136 +64,32 @@
               dependencies, and prior discussion. It returns an evidence-backed release
               review.
             </p>
-            <pre><code>from costhack.schema import Case, ModelClient, Review
+            <pre><code>from costhack.schema import Case, Review
 
-def review(case: Case, client: ModelClient) -&gt; Review:
+def review(case: Case) -&gt; Review:
     ...</code></pre>
             <p>
-              You may use deterministic rules, the evaluator-provided model client, or
-              both. You may also build your own Merge Gateway or condense.chat client.
-              The final evaluator uses harder private cases. The only inference rule is
-              that model inference must run through Merge Gateway or condense.chat.
+              The organizer calls this function with each private case. Your function
+              may use deterministic rules, call Merge Gateway directly, or combine both
+              approaches. No model client is passed into your function. After the run,
+              the organizer reads the cost recorded by Merge Gateway.
             </p>
           </section>
 
-          <section id="prerequisites" class="step">
-            <span class="step-number">1</span>
-            <div>
-              <h2>Install the prerequisites</h2>
-              <p>You need:</p>
-              <ul>
-                <li>Git</li>
-                <li>Python 3.11 or newer</li>
-                <li><a href="https://docs.astral.sh/uv/">uv</a></li>
-              </ul>
-              <p>Check them:</p>
-              <pre><code>git --version
-python3 --version
-uv --version</code></pre>
-            </div>
-          </section>
-
-          <section id="clone" class="step">
-            <span class="step-number">2</span>
-            <div>
-              <h2>Clone the starter</h2>
-              <pre><code>git clone https://github.com/kaashif/ai-cost-hack.git
-cd ai-cost-hack
-uv sync</code></pre>
-              <p>
-                This installs the benchmark CLI and development tools from the committed
-                lockfile.
-              </p>
-            </div>
-          </section>
-
-          <section id="benchmark" class="step">
-            <span class="step-number">3</span>
-            <div>
-              <h2>Run the public benchmark</h2>
-              <pre><code>uv run costhack benchmark --public</code></pre>
-              <p>The deliberately incomplete starter should report:</p>
-              <pre><code>NOT ELIGIBLE  quality=50.0  model_calls=0
-Public cost is $0.00 because the starter strategy is local.</code></pre>
-              <p>
-                The starter catches five of ten cases. The examples demonstrate the
-                input, output, and scoring contract without revealing the final test set.
-              </p>
-            </div>
-          </section>
-
-          <section id="inspect" class="step">
-            <span class="step-number">4</span>
-            <div>
-              <h2>Inspect a public case</h2>
-              <pre><code>uv run costhack inspect public-auth-delete</code></pre>
-              <p>
-                Read <code>data/public_cases.json</code> to see the complete public case
-                schema. Public cases include their rubrics; private cases do not.
-              </p>
-            </div>
-          </section>
-
-          <section id="strategy" class="step">
-            <span class="step-number">5</span>
-            <div>
-              <h2>Edit your strategy</h2>
-              <p>
-                Open <code>submission/strategy.py</code>. Keep the
-                <code>review(case, client)</code> entry point and return this shape:
-              </p>
-              <pre><code>{
-    "risk": "high",
-    "findings": [
-        {
-            "category": "authorization",
-            "severity": "high",
-            "file": "api/delete_project.py",
-            "evidence": "The project is loaded without an owner check.",
-            "explanation": "A user can delete another tenant's project.",
-        }
-    ],
-    "tests": ["Cross-tenant deletion must return 403"],
-    "next_action": "block",
-}</code></pre>
-              <p>
-                If you use a model, call <code>client.generate(...)</code>. Do not create
-                another paid provider client.
-              </p>
-              <pre><code>response = client.generate(
-    model="openai/gpt-5.5",
-    messages=[
-        {"role": "system", "content": "Review this change."},
-        {"role": "user", "content": case["brief"]},
-    ],
-    max_output_tokens=1200,
-    compression="none",
-    tags={"stage": "review"},
-)</code></pre>
-              <p>
-                There are two complete starting points:
-                <code>submission/strategy.py</code> contains the deterministic Python
-                rules baseline, and <code>examples/merge_only/strategy.py</code> contains
-                the GPT-5.5-through-Merge strategy.
-              </p>
-              <p>
-                Once quality is reliable, consider condense.chat for long, noisy cases.
-                Compare compressed and uncompressed inputs with the same prompt and
-                GPT-5.5 model. You can use Condense's proxy or Rewrite API.
-              </p>
-            </div>
-          </section>
-
           <section id="accounts" class="step">
-            <span class="step-number">6</span>
+            <span class="step-number">1</span>
             <div>
               <h2>Set up the sponsor accounts</h2>
               <p>
-                Skip this section until you want to make live model calls. If the event
-                gives you credentials, use those instead of creating separate ones.
+                You can skip this section until you want to make live model calls. If the
+                event gives you credentials, use those instead of creating separate ones.
               </p>
 
               <h3>Merge Gateway</h3>
+              <div class="note">
+                <strong>New Merge Gateway accounts include $15 in free credit.</strong>
+                You can use this credit for model calls during the hackathon.
+              </div>
               <ol>
                 <li>
                   Open
@@ -214,26 +111,52 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
               </ol>
 
               <h3>condense.chat</h3>
-              <ol>
-                <li>Install the official CLI:</li>
-              </ol>
-              <pre><code>curl -fsSL https://cli.condense.chat/unix | sh</code></pre>
-              <ol start="2">
-                <li>Start the browser sign-in flow:</li>
-              </ol>
-              <pre><code>dense login</code></pre>
-              <ol start="3">
-                <li>Choose <strong>Sign up</strong> if you do not have an account.</li>
-                <li>Complete the device flow, then verify:</li>
-              </ol>
-              <pre><code>dense status
-dense doctor</code></pre>
-              <ol start="5">
-                <li>
-                  If you need direct API access, copy the <code>ak_</code> token from the
-                  condense.chat dashboard.
-                </li>
-              </ol>
+              <p>
+                Start at <a href="https://condense.chat/">condense.chat</a>. There are two
+                supported ways to use it, and you may use either or both.
+              </p>
+              <h4>Option 1: Run a coding agent through Condense</h4>
+              <p>
+                Install and sign in to the <code>dense</code> CLI by following the
+                <a href="https://condense.chat/docs/">agent setup instructions</a>. Then
+                launch Codex or Claude Code through Condense:
+              </p>
+              <pre><code>dense codex
+dense claude</code></pre>
+              <p>
+                This keeps the agent's normal authentication and routes its requests
+                through the Condense proxy.
+              </p>
+              <h4>Option 2: Call models through the proxy API</h4>
+              <p>
+                Point an OpenAI-compatible client at Condense, supply your normal
+                upstream provider key, and add your Condense token:
+              </p>
+              <pre><code>import os
+
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["OPENAI_API_KEY"],
+    base_url="https://api.condense.chat/openai/v1",
+    default_headers={
+        "X-Condense-Auth-Token": os.environ["CONDENSE_AUTH_TOKEN"],
+    },
+)
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Review this change."}],
+)</code></pre>
+              <p>
+                The standard OpenAI request methods continue to work. Anthropic users can
+                follow the equivalent proxy example in the
+                <a href="https://condense.chat/docs/quickstart/">Condense quickstart</a>.
+              </p>
+              <div class="warning">
+                <strong>Proxy calls use your upstream provider account.</strong>
+                They do not automatically appear in Merge Gateway. Only model cost
+                recorded by Merge Gateway is included in the hackathon score.
+              </div>
 
               <h3>Store credentials locally</h3>
               <pre><code>cp .env.example .env
@@ -241,12 +164,136 @@ chmod 600 .env</code></pre>
               <p>Edit <code>.env</code>:</p>
               <pre><code>MERGE_GATEWAY_API_KEY=mg_replace_me
 MERGE_GATEWAY_PROJECT_ID=replace_me
-CONDENSE_AUTH_TOKEN=ak_replace_me</code></pre>
+CONDENSE_AUTH_TOKEN=ak_replace_me
+OPENAI_API_KEY=sk_replace_me</code></pre>
               <div class="warning">
                 <strong>Never commit <code>.env</code>.</strong>
                 If a secret is committed, revoke it immediately. Removing it from the
                 latest commit does not remove it from Git history.
               </div>
+            </div>
+          </section>
+
+          <section id="prerequisites" class="step">
+            <span class="step-number">2</span>
+            <div>
+              <h2>Install the prerequisites</h2>
+              <p>You need:</p>
+              <ul>
+                <li>Git</li>
+                <li>Python 3.11 or newer</li>
+                <li><a href="https://docs.astral.sh/uv/">uv</a></li>
+              </ul>
+              <p>Check them:</p>
+              <pre><code>git --version
+python3 --version
+uv --version</code></pre>
+            </div>
+          </section>
+
+          <section id="clone" class="step">
+            <span class="step-number">3</span>
+            <div>
+              <h2>Fork and clone the starter</h2>
+              <p>
+                <a href="https://github.com/kaashif/ai-cost-hack/fork"
+                  >Fork the starter repository</a
+                >
+                on GitHub and keep your fork public. Then clone your fork, replacing
+                <code>YOUR-USERNAME</code> with your GitHub username:
+              </p>
+              <pre><code>git clone https://github.com/YOUR-USERNAME/ai-cost-hack.git
+cd ai-cost-hack
+uv sync</code></pre>
+              <p>
+                This installs the benchmark CLI and development tools from the committed
+                lockfile.
+              </p>
+            </div>
+          </section>
+
+          <section id="benchmark" class="step">
+            <span class="step-number">4</span>
+            <div>
+              <h2>Run the public benchmark</h2>
+              <pre><code>uv run costhack benchmark --public</code></pre>
+              <p>The deliberately incomplete starter should report:</p>
+              <pre><code>NOT ELIGIBLE  quality=50.0
+Model cost is measured separately in Merge Gateway.</code></pre>
+              <p>
+                The starter catches five of ten cases. The examples demonstrate the
+                input, output, and scoring contract without revealing the final test set.
+              </p>
+            </div>
+          </section>
+
+          <section id="inspect" class="step">
+            <span class="step-number">5</span>
+            <div>
+              <h2>Inspect a public case</h2>
+              <pre><code>uv run costhack inspect public-auth-delete</code></pre>
+              <p>
+                Read <code>data/public_cases.json</code> to see the complete public case
+                schema. Public cases include their rubrics; private cases do not.
+              </p>
+            </div>
+          </section>
+
+          <section id="strategy" class="step">
+            <span class="step-number">6</span>
+            <div>
+              <h2>Edit your strategy</h2>
+              <p>
+                Open <code>submission/strategy.py</code>. Keep the
+                <code>review(case)</code> entry point and return this shape:
+              </p>
+              <pre><code>{
+    "risk": "high",
+    "findings": [
+        {
+            "category": "authorization",
+            "severity": "high",
+            "file": "api/delete_project.py",
+            "evidence": "The project is loaded without an owner check.",
+            "explanation": "A user can delete another tenant's project.",
+        }
+    ],
+    "tests": ["Cross-tenant deletion must return 403"],
+    "next_action": "block",
+}</code></pre>
+              <p>
+                If you use a model, create a Merge Gateway client inside your submission
+                and read its credentials from the environment.
+              </p>
+              <pre><code>import os
+
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MERGE_GATEWAY_API_KEY"],
+    base_url="https://api-gateway.merge.dev/v1/openai",
+)
+response = client.chat.completions.create(
+    model="gpt-5.5",
+    messages=[
+        {"role": "system", "content": "Review this change."},
+        {"role": "user", "content": case["brief"]},
+    ],
+    extra_body={"project_id": os.environ["MERGE_GATEWAY_PROJECT_ID"]},
+)</code></pre>
+              <p>
+                There are two complete starting points:
+                <code>submission/strategy.py</code> contains the deterministic Python
+                rules baseline, and <code>examples/merge_only/strategy.py</code> contains
+                the GPT-5.5-through-Merge strategy.
+              </p>
+              <p>
+                Once quality is reliable, consider condense.chat for long, noisy cases.
+                Use the <code>dense</code> CLI with Codex or Claude Code, or call models
+                through Condense's supported proxy API. Scored model inference must still
+                appear in Merge Gateway so its cost is included in the official
+                measurement.
+              </p>
             </div>
           </section>
 
@@ -271,32 +318,39 @@ git status --short</code></pre>
               <h2>Commit, push, and submit</h2>
               <pre><code>git add submission pyproject.toml uv.lock
 git commit -m "Submit PatchGuard strategy"
-git push
-git rev-parse HEAD</code></pre>
-              <p>Submit both of these before the cutoff:</p>
-              <ul>
-                <li>Your public GitHub repository URL</li>
-                <li>The exact commit SHA printed by the final command</li>
-              </ul>
+git push</code></pre>
+              <p>
+                Submit your public GitHub repository URL through the
+                <a href="https://forms.gle/WFibQgZeckAAnwMFA">submission form</a>
+                before the cutoff.
+              </p>
             </div>
           </section>
 
-          <section id="rules">
-            <h2>Rule</h2>
-            <p>Model inference must run through Merge Gateway or condense.chat.</p>
+          <section id="scoring">
+            <h2>Scoring</h2>
+            <p>Scoring happens in two stages:</p>
+            <ol>
+              <li>
+                <strong>Pass the quality gate.</strong> Your reviewer must catch the
+                required dangerous changes on the private benchmark. Cost is considered
+                only for submissions that pass.
+              </li>
+              <li>
+                <strong>Rank by Merge Gateway cost.</strong> Among passing submissions,
+                the winner is the entry with the lowest total model cost recorded by
+                Merge Gateway while the organizer calls the submission on the official
+                benchmark.
+              </li>
+            </ol>
+            <div class="note">
+              <strong>Merge Gateway is the source of truth for cost.</strong>
+              We do not score local estimates, raw token counts, provider price tables,
+              or costs reported by participant code. Deterministic local computation
+              adds no model cost. The organizer records Merge Gateway usage before and
+              after calling the submission and uses the difference as its cost.
+            </div>
           </section>
-
-          <nav class="next-links" aria-label="Further documentation">
-            <a href="https://github.com/kaashif/ai-cost-hack/blob/main/QUICKSTART.md">
-              Full quickstart
-            </a>
-            <a
-              href="https://github.com/kaashif/ai-cost-hack/blob/main/docs/submission-contract.md"
-            >
-              Submission contract
-            </a>
-            <a href="https://github.com/kaashif/ai-cost-hack/issues">Ask a question</a>
-          </nav>
         </article>
       </main>
     </div>

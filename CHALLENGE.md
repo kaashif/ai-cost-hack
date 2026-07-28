@@ -51,7 +51,7 @@ Suggested condense.chat experiment:
 
 1. Build a passing GPT-5.5-through-Merge baseline.
 1. Compress only long or noisy case context with condense.chat.
-1. Try Condense's proxy or send rewritten messages through Merge.
+1. Follow the current instructions on the condense.chat website.
 1. Compare quality, latency, and recorded cost against the uncompressed run.
 
 ## Rule

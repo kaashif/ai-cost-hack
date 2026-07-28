@@ -107,5 +107,4 @@ them.
 - Invalid output receives zero quality for the case.
 
 The repository includes only two complete strategies: the Python rules starter and the
-GPT-5.5-through-Merge example. For optional preprocessing with condense.chat, follow the
-instructions on its website.
+GPT-5.5-through-Merge example. For condense.chat, follow the instructions on its website.

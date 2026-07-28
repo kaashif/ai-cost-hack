@@ -12,11 +12,14 @@ The website is published with GitHub Pages:
 ## Quickstart
 
 ```bash
-git clone https://github.com/kaashif/ai-cost-hack.git
+git clone https://github.com/YOUR-USERNAME/ai-cost-hack.git
 cd ai-cost-hack
 uv sync
 uv run costhack benchmark --public
 ```
+
+First [fork this repository](https://github.com/kaashif/ai-cost-hack/fork), keep the fork
+public, and replace `YOUR-USERNAME` with your GitHub username in the clone command.
 
 Edit [submission/strategy.py](submission/strategy.py), then run the benchmark again.
 

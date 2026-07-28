@@ -1,12 +1,16 @@
 # Quickstart
 
-## 1. Install the starter
+## 1. Fork and install the starter
 
 You need Git, Python 3.11 or newer, and
 [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
+First [fork the starter repository](https://github.com/kaashif/ai-cost-hack/fork) on
+GitHub and keep your fork public. Then replace `YOUR-USERNAME` below with your GitHub
+username and clone your fork:
+
 ```bash
-git clone https://github.com/kaashif/ai-cost-hack.git
+git clone https://github.com/YOUR-USERNAME/ai-cost-hack.git
 cd ai-cost-hack
 uv sync
 ```

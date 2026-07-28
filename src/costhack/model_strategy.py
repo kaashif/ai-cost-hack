@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import TypedDict
 
-from .contract import validate_review
-from .schema import Case, ContextSection, Message, ModelClient, Review
+from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
-MODEL = "openai/gpt-5.5"
+from .contract import validate_review
+from .schema import Case, ContextSection, Review
+
+MODEL = "gpt-5.5"
 
 
 class VisibleCase(TypedDict):
@@ -29,7 +33,7 @@ def parse_review(text: str) -> Review:
     return validate_review(json.loads(cleaned.strip()))
 
 
-def review_messages(case: Case) -> list[Message]:
+def review_messages(case: Case) -> list[ChatCompletionMessageParam]:
     visible_case: VisibleCase = {
         "title": case["title"],
         "brief": case["brief"],
@@ -69,12 +73,24 @@ def review_messages(case: Case) -> list[Message]:
     ]
 
 
-def review_with_model(case: Case, client: ModelClient) -> Review:
-    response = client.generate(
+def _required_env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"{name} is required for Merge Gateway model calls")
+    return value
+
+
+def review_with_model(case: Case) -> Review:
+    client = OpenAI(
+        api_key=_required_env("MERGE_GATEWAY_API_KEY"),
+        base_url="https://api-gateway.merge.dev/v1/openai",
+    )
+    response = client.chat.completions.create(
         model=MODEL,
         messages=review_messages(case),
-        max_output_tokens=1600,
-        compression="none",
-        tags={"example": "merge-gpt-5.5"},
+        max_completion_tokens=1600,
+        extra_body={
+            "project_id": _required_env("MERGE_GATEWAY_PROJECT_ID"),
+        },
     )
-    return parse_review(response["text"])
+    return parse_review(response.choices[0].message.content or "")

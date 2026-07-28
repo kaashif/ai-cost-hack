@@ -1,5 +1,5 @@
 from costhack.cli import _load_cases, _load_strategy
-from costhack.contract import ContractError, OfflineModelClient, validate_review
+from costhack.contract import ContractError, validate_review
 from costhack.schema import Review, Rubric
 from costhack.scoring import score_review
 
@@ -47,10 +47,8 @@ def test_exact_public_finding_passes() -> None:
 
 def test_starter_scores_exactly_half_of_public_cases() -> None:
     strategy = _load_strategy()
-    client = OfflineModelClient()
     results = [
-        score_review(validate_review(strategy.review(case, client)), case["rubric"])
-        for case in _load_cases()
+        score_review(validate_review(strategy.review(case)), case["rubric"]) for case in _load_cases()
     ]
 
     assert len(results) == 10

@@ -39,41 +39,7 @@ Expected result: `200`.
 
 ## condense.chat
 
-The recommended path is the official dense CLI.
-
-1. Install it:
-
-   ```bash
-   curl -fsSL https://cli.condense.chat/unix | sh
-   ```
-
-1. Run:
-
-   ```bash
-   dense login
-   ```
-
-1. Complete the browser device flow. Choose **Sign up** if you do not yet have an
-   account.
-
-1. Verify:
-
-   ```bash
-   dense status
-   dense doctor
-   ```
-
-For direct API access instead, sign up at
-[login.condense.chat](https://login.condense.chat/sign-up?return=https%3A%2F%2Fhelm.condense.chat),
-claim an `ak_…` key in the dashboard, and put it in `.env`:
-
-```dotenv
-CONDENSE_AUTH_TOKEN=ak_replace_me
-```
-
-The condense key travels in `X-Condense-Auth-Token`. You can use Condense's proxy with an
-upstream provider key, or request Rewrite API access and forward the rewritten messages
-yourself.
+Go to [condense.chat](https://condense.chat/) and follow the instructions on the website.
 
 ## Safety check
 

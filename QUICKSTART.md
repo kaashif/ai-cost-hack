@@ -31,15 +31,13 @@ categories, and output contract.
 
 ## 4. Change the strategy
 
-Edit `submission/strategy.py`. Your function receives:
-
-- a normalized release-review case; and
-- a metered model client supplied by the evaluator.
+Edit `submission/strategy.py`. Your function receives one normalized release-review
+case. The organizer does not pass it a model client.
 
 It returns a structured review:
 
 ```python
-def review(case, client):
+def review(case):
     return {
         "risk": "high",
         "findings": [
@@ -56,9 +54,9 @@ def review(case, client):
     }
 ```
 
-You may call `client.generate(...)`, construct your own Merge Gateway or condense.chat
-client, use deterministic rules, or combine them. The only inference rule is that model
-inference must run through Merge Gateway or condense.chat.
+You may use deterministic rules, call Merge Gateway directly, or combine both. Read your
+Merge Gateway credentials from the environment. The organizer calls your function and
+then uses the cost recorded in Merge Gateway.
 
 Two complete examples are included:
 
@@ -72,8 +70,8 @@ cp examples/merge_only/strategy.py submission/strategy.py
 ```
 
 Once quality is reliable, try condense.chat on long or noisy inputs. Keep GPT-5.5 and the
-prompt fixed, compare compressed and uncompressed runs, and use recorded usage rather
-than estimating cost locally. You can use Condense's proxy or its Rewrite API.
+prompt fixed and compare compressed and uncompressed runs. Go to
+[condense.chat](https://condense.chat/) and follow the instructions on the website.
 
 ## 5. Set up sponsor accounts
 

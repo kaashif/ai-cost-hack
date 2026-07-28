@@ -56,7 +56,8 @@ Suggested condense.chat experiment:
 
 ## Rule
 
-Model inference must run through Merge Gateway or condense.chat.
+Model inference must run through Merge Gateway so its cost appears in the official usage
+record.
 
 ## Scoring
 
@@ -79,9 +80,10 @@ must pass quality before its cost is considered.
 
 ### 2. Cost ranking
 
-Among eligible submissions, the lowest total accounted cost wins. Use the official usage
-records for Merge Gateway and condense.chat calls. Raw token count is not the score:
-destroying a provider's prompt cache can save tokens and still cost more.
+Among eligible submissions, the lowest Merge Gateway-measured cost wins. The organizer
+records project usage before and after calling the submission on the hidden benchmark.
+The difference is the submission's cost. Raw token count and costs reported by participant
+code are not used.
 
 Close results may be rerun. Published tie-breaks are:
 

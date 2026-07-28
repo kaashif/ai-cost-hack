@@ -5,7 +5,7 @@ Replace this with your own routing, compression, rules, or metered model calls.
 
 from __future__ import annotations
 
-from costhack.schema import Action, Case, Finding, ModelClient, Review, Risk
+from costhack.schema import Action, Case, Finding, Review, Risk
 
 
 def _section_text(case: Case) -> str:
@@ -22,7 +22,7 @@ def _path_containing(case: Case, marker: str, fallback: str) -> str:
     return fallback
 
 
-def review(case: Case, client: ModelClient) -> Review:
+def review(case: Case) -> Review:
     text = _section_text(case)
     findings: list[Finding] = []
     tests: list[str] = []

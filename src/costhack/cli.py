@@ -11,8 +11,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol, cast
 
-from .contract import OfflineModelClient, validate_review
-from .schema import Case, ModelClient, Review, ScoreResult
+from .contract import validate_review
+from .schema import Case, Review, ScoreResult
 from .scoring import score_review
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,7 +20,7 @@ PUBLIC_DATA = ROOT / "data" / "public_cases.json"
 
 
 class StrategyModule(Protocol):
-    review: Callable[[Case, ModelClient], Review]
+    review: Callable[[Case], Review]
 
 
 def _load_cases() -> list[Case]:
@@ -39,11 +39,10 @@ def _load_strategy() -> StrategyModule:
 
 def benchmark() -> int:
     strategy = _load_strategy()
-    client = OfflineModelClient()
     rows: list[tuple[str, ScoreResult]] = []
     for case in _load_cases():
         try:
-            review = validate_review(strategy.review(case, client))
+            review = validate_review(strategy.review(case))
             result = score_review(review, case["rubric"])
         except Exception as exc:
             result = {"score": 0.0, "passed": False, "missing": [], "error": str(exc)}
@@ -60,10 +59,8 @@ def benchmark() -> int:
     mean = sum(row[1]["score"] for row in rows) / max(1, len(rows))
     passed = all(row[1]["passed"] for row in rows)
     print("-" * 72)
-    print(
-        f"{'ELIGIBLE' if passed else 'NOT ELIGIBLE'}  quality={mean:.1f}  model_calls={client.calls}"
-    )
-    print("Public cost is $0.00 because the starter strategy is local.")
+    print(f"{'ELIGIBLE' if passed else 'NOT ELIGIBLE'}  quality={mean:.1f}")
+    print("Model cost is measured separately in Merge Gateway.")
     return 0 if passed else 1
 
 

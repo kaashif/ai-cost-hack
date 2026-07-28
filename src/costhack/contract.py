@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from typing import cast
 
-from .schema import Action, Message, ModelResponse, Review, Risk
+from .schema import Action, Review, Risk
 
 RISKS: tuple[Risk, ...] = ("low", "medium", "high", "critical")
 ACTIONS: tuple[Action, ...] = ("approve", "request_changes", "block")
@@ -55,25 +54,3 @@ def validate_review(review: object) -> Review:
     if not isinstance(tests, list) or not all(isinstance(item, str) for item in tests):
         raise ContractError("tests must be a list of strings")
     return cast(Review, review)
-
-
-@dataclass
-class OfflineModelClient:
-    """Model client used by the zero-spend public starter."""
-
-    calls: int = 0
-
-    def generate(
-        self,
-        *,
-        model: str,
-        messages: list[Message],
-        max_output_tokens: int = 1200,
-        compression: str = "none",
-        compression_rate: float | None = None,
-        tags: Mapping[str, str] | None = None,
-    ) -> ModelResponse:
-        raise RuntimeError(
-            "The public benchmark is offline. Use deterministic logic or run with the "
-            "event's metered model client."
-        )

@@ -11,48 +11,41 @@ from submission.strategy import review
 The callable must have this shape:
 
 ```python
-from costhack.schema import Case, ModelClient, Review
+from costhack.schema import Case, Review
 
 
-def review(case: Case, client: ModelClient) -> Review: ...
+def review(case: Case) -> Review: ...
 ```
 
-`case` is JSON-compatible and follows the public case schema. `client` is a convenient
-evaluator-provided Merge Gateway client. You may instead construct your own Merge Gateway
-or condense.chat client.
+`case` is JSON-compatible and follows the public case schema. The organizer calls
+`review(case)` directly. No model client is passed to the function.
 
-## Model client
+## Model access
 
-The stable method is:
+Create and configure your own Merge Gateway client inside the submission. Read the API
+key and project ID from the environment:
 
 ```python
-client.generate(
-    model="openai/gpt-5.5",
+import os
+
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MERGE_GATEWAY_API_KEY"],
+    base_url="https://api-gateway.merge.dev/v1/openai",
+)
+response = client.chat.completions.create(
+    model="gpt-5.5",
     messages=[
         {"role": "system", "content": "..."},
         {"role": "user", "content": "..."},
     ],
-    max_output_tokens=1200,
-    compression="none",
-    tags={"stage": "review"},
+    extra_body={"project_id": os.environ["MERGE_GATEWAY_PROJECT_ID"]},
 )
 ```
 
-It returns a JSON-compatible dictionary with this stable shape:
-
-```python
-{
-    "text": "model response text",
-    "model": "resolved-model-name",
-    "usage": {
-        "input_tokens": 120,
-        "output_tokens": 80,
-    },
-}
-```
-
-Token counts may be absent when a provider does not report them. The hidden evaluator
-may restrict models, maximum calls, output tokens, or compression modes.
+The organizer records project usage before and after calling the submission. The
+difference reported by Merge Gateway is the submission's measured model cost.
 
 ## Review output
 
@@ -109,11 +102,10 @@ them.
 
 - At most 8 findings per case.
 - Evidence must be grounded in supplied context.
-- Model inference must run through Merge Gateway or condense.chat.
-- The evaluator may execute strategy code without general network access.
+- All model inference must run through Merge Gateway.
+- The evaluator allows network access to Merge Gateway while calling the submission.
 - Invalid output receives zero quality for the case.
 
 The repository includes only two complete strategies: the Python rules starter and the
-GPT-5.5-through-Merge example. condense.chat is an optional optimization, not a third
-example. Try Condense's proxy or Rewrite API on selected long inputs and compare it with
-the same GPT-5.5 baseline.
+GPT-5.5-through-Merge example. For optional preprocessing with condense.chat, follow the
+instructions on its website.

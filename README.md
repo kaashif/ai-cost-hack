@@ -38,10 +38,10 @@ passing submission wins.
 - [`examples/merge_only/strategy.py`](examples/merge_only/strategy.py) makes one GPT-5.5
   call per case through Merge Gateway.
 
-Both use the evaluator-owned interface and return the same typed review contract.
+Both expose the same typed `review(case)` entry point and return the same review contract.
 
 After establishing a passing strategy, consider condense.chat for long, noisy cases.
-Compare the same prompt and GPT-5.5 model with and without compression, then use recorded
-usage rather than a local estimate. Compression is most promising when history is large;
-it may add latency without helping short cases. Model inference may run through Merge
-Gateway or condense.chat.
+Compare the same prompt and GPT-5.5 model with and without compression, then use Merge
+Gateway's recorded cost rather than a local estimate. Compression is most promising when
+history is large; it may add latency without helping short cases. Model inference must
+run through Merge Gateway.

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Literal, NotRequired, Protocol, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 Risk = Literal["low", "medium", "high", "critical"]
 Action = Literal["approve", "request_changes", "block"]
@@ -54,23 +53,6 @@ class Review(TypedDict):
     next_action: Action
 
 
-class Message(TypedDict):
-    role: Literal["system", "user", "assistant"]
-    content: str
-
-
-class ModelUsage(TypedDict, total=False):
-    input_tokens: int
-    output_tokens: int
-    total_tokens: int
-
-
-class ModelResponse(TypedDict):
-    text: str
-    model: str
-    usage: ModelUsage
-
-
 class ScoreResult(TypedDict):
     score: float
     passed: bool
@@ -78,18 +60,3 @@ class ScoreResult(TypedDict):
     missing: NotRequired[list[str]]
     false_positives: NotRequired[int]
     error: NotRequired[str]
-
-
-class ModelClient(Protocol):
-    calls: int
-
-    def generate(
-        self,
-        *,
-        model: str,
-        messages: list[Message],
-        max_output_tokens: int = 1200,
-        compression: str = "none",
-        compression_rate: float | None = None,
-        tags: Mapping[str, str] | None = None,
-    ) -> ModelResponse: ...

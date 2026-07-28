@@ -64,16 +64,15 @@
               dependencies, and prior discussion. It returns an evidence-backed release
               review.
             </p>
-            <pre><code>from costhack.schema import Case, ModelClient, Review
+            <pre><code>from costhack.schema import Case, Review
 
-def review(case: Case, client: ModelClient) -&gt; Review:
+def review(case: Case) -&gt; Review:
     ...</code></pre>
             <p>
-              You may use deterministic rules, the evaluator-provided model client, or
-              both. You may also build your own Merge Gateway client and optionally use
-              condense.chat to preprocess model inputs. The final evaluator uses harder
-              private cases. All scored model inference must run through Merge Gateway
-              so its cost can be measured consistently.
+              The organizer calls this function with each private case. Your function
+              may use deterministic rules, call Merge Gateway directly, or combine both
+              approaches. No model client is passed into your function. After the run,
+              the organizer reads the cost recorded by Merge Gateway.
             </p>
           </section>
 
@@ -112,34 +111,17 @@ def review(case: Case, client: ModelClient) -&gt; Review:
               </ol>
 
               <h3>condense.chat</h3>
-              <ol>
-                <li>Install the official CLI:</li>
-              </ol>
-              <pre><code>curl -fsSL https://cli.condense.chat/unix | sh</code></pre>
-              <ol start="2">
-                <li>Start the browser sign-in flow:</li>
-              </ol>
-              <pre><code>dense login</code></pre>
-              <ol start="3">
-                <li>Choose <strong>Sign up</strong> if you do not have an account.</li>
-                <li>Complete the device flow, then verify:</li>
-              </ol>
-              <pre><code>dense status
-dense doctor</code></pre>
-              <ol start="5">
-                <li>
-                  If you need direct API access, copy the <code>ak_</code> token from the
-                  condense.chat dashboard.
-                </li>
-              </ol>
+              <p>
+                Go to <a href="https://condense.chat/">condense.chat</a> and follow the
+                instructions on the website.
+              </p>
 
               <h3>Store credentials locally</h3>
               <pre><code>cp .env.example .env
 chmod 600 .env</code></pre>
               <p>Edit <code>.env</code>:</p>
               <pre><code>MERGE_GATEWAY_API_KEY=mg_replace_me
-MERGE_GATEWAY_PROJECT_ID=replace_me
-CONDENSE_AUTH_TOKEN=ak_replace_me</code></pre>
+MERGE_GATEWAY_PROJECT_ID=replace_me</code></pre>
               <div class="warning">
                 <strong>Never commit <code>.env</code>.</strong>
                 If a secret is committed, revoke it immediately. Removing it from the
@@ -185,8 +167,8 @@ uv sync</code></pre>
               <h2>Run the public benchmark</h2>
               <pre><code>uv run costhack benchmark --public</code></pre>
               <p>The deliberately incomplete starter should report:</p>
-              <pre><code>NOT ELIGIBLE  quality=50.0  model_calls=0
-Public cost is $0.00 because the starter strategy is local.</code></pre>
+              <pre><code>NOT ELIGIBLE  quality=50.0
+Model cost is measured separately in Merge Gateway.</code></pre>
               <p>
                 The starter catches five of ten cases. The examples demonstrate the
                 input, output, and scoring contract without revealing the final test set.
@@ -212,7 +194,7 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
               <h2>Edit your strategy</h2>
               <p>
                 Open <code>submission/strategy.py</code>. Keep the
-                <code>review(case, client)</code> entry point and return this shape:
+                <code>review(case)</code> entry point and return this shape:
               </p>
               <pre><code>{
     "risk": "high",
@@ -229,18 +211,24 @@ Public cost is $0.00 because the starter strategy is local.</code></pre>
     "next_action": "block",
 }</code></pre>
               <p>
-                If you use a model, call <code>client.generate(...)</code>. Do not create
-                another paid provider client.
+                If you use a model, create a Merge Gateway client inside your submission
+                and read its credentials from the environment.
               </p>
-              <pre><code>response = client.generate(
-    model="openai/gpt-5.5",
+              <pre><code>import os
+
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["MERGE_GATEWAY_API_KEY"],
+    base_url="https://api-gateway.merge.dev/v1/openai",
+)
+response = client.chat.completions.create(
+    model="gpt-5.5",
     messages=[
         {"role": "system", "content": "Review this change."},
         {"role": "user", "content": case["brief"]},
     ],
-    max_output_tokens=1200,
-    compression="none",
-    tags={"stage": "review"},
+    extra_body={"project_id": os.environ["MERGE_GATEWAY_PROJECT_ID"]},
 )</code></pre>
               <p>
                 There are two complete starting points:
@@ -301,15 +289,16 @@ git rev-parse HEAD</code></pre>
               <li>
                 <strong>Rank by Merge Gateway cost.</strong> Among passing submissions,
                 the winner is the entry with the lowest total model cost recorded by
-                Merge Gateway during the official benchmark run.
+                Merge Gateway while the organizer calls the submission on the official
+                benchmark.
               </li>
             </ol>
             <div class="note">
               <strong>Merge Gateway is the source of truth for cost.</strong>
               We do not score local estimates, raw token counts, provider price tables,
               or costs reported by participant code. Deterministic local computation
-              adds no model cost; every scored model request must appear in the official
-              Merge Gateway usage record.
+              adds no model cost. The organizer records Merge Gateway usage before and
+              after calling the submission and uses the difference as its cost.
             </div>
           </section>
 

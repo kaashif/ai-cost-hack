@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from costhack.schema import Case, Message, ModelResponse
+from costhack.schema import Case
 from examples.merge_only.strategy import review as merge_review
 
 
@@ -24,44 +25,51 @@ def example_case() -> Case:
     }
 
 
-class RecordingClient:
+class RecordingCompletions:
     calls = 0
 
-    def __init__(self) -> None:
-        self.compressions: list[str] = []
-
-    def generate(
-        self,
-        *,
-        model: str,
-        messages: list[Message],
-        max_output_tokens: int = 1200,
-        compression: str = "none",
-        compression_rate: float | None = None,
-        tags: Mapping[str, str] | None = None,
-    ) -> ModelResponse:
-        del messages, max_output_tokens, compression_rate, tags
-        assert model == "openai/gpt-5.5"
+    def create(self, **kwargs: object) -> object:
+        assert kwargs["model"] == "gpt-5.5"
+        assert kwargs["extra_body"] == {"project_id": "event-project"}
         self.calls += 1
-        self.compressions.append(compression)
-        return {
-            "text": json.dumps(
-                {
-                    "risk": "low",
-                    "findings": [],
-                    "tests": [],
-                    "next_action": "approve",
-                }
-            ),
-            "model": model,
-            "usage": {},
-        }
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content=json.dumps(
+                            {
+                                "risk": "low",
+                                "findings": [],
+                                "tests": [],
+                                "next_action": "approve",
+                            }
+                        )
+                    )
+                )
+            ]
+        )
 
 
-def test_merge_only_example() -> None:
-    client = RecordingClient()
+class RecordingOpenAI:
+    completions = RecordingCompletions()
 
-    merge_review(example_case(), client)
+    def __init__(self, **kwargs: object) -> None:
+        assert kwargs["api_key"] == "mg_test"
+        assert kwargs["base_url"] == "https://api-gateway.merge.dev/v1/openai"
+        self.chat = SimpleNamespace(completions=self.completions)
 
-    assert client.calls == 1
-    assert client.compressions == ["none"]
+
+def test_merge_only_example_creates_its_own_client() -> None:
+    with (
+        patch.dict(
+            "os.environ",
+            {
+                "MERGE_GATEWAY_API_KEY": "mg_test",
+                "MERGE_GATEWAY_PROJECT_ID": "event-project",
+            },
+        ),
+        patch("costhack.model_strategy.OpenAI", RecordingOpenAI),
+    ):
+        merge_review(example_case())
+
+    assert RecordingOpenAI.completions.calls == 1

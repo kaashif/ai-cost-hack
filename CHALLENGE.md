@@ -95,10 +95,10 @@ Close results may be rerun. Published tie-breaks are:
 
 Submit:
 
-- a public GitHub repository;
-- the exact commit SHA;
+- your public GitHub repository URL through the
+  [submission form](https://forms.gle/WFibQgZeckAAnwMFA);
 - `submission/strategy.py`;
 - a locked environment;
 - `SUBMISSION.md` describing the approach.
 
-The organizer runs that exact commit against the hidden benchmark.
+The organizer runs the submitted repository against the hidden benchmark.

@@ -92,4 +92,5 @@ git status --short
 ```
 
 Your public repository must contain `submission/strategy.py` and an exact dependency lock.
-Submit the repository URL and commit SHA before the cutoff.
+Submit the repository URL through the
+[submission form](https://forms.gle/WFibQgZeckAAnwMFA) before the cutoff.

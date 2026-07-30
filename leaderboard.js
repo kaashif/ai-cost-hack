@@ -12,7 +12,7 @@ function showEmpty(message) {
   body.replaceChildren();
   const row = document.createElement("tr");
   const empty = cell(message, "leaderboard-empty");
-  empty.colSpan = 4;
+  empty.colSpan = 5;
   row.append(empty);
   body.append(row);
 }
@@ -43,7 +43,18 @@ fetch("leaderboard.json", { cache: "no-store" })
       teamCell.append(link);
       row.append(teamCell);
 
-      row.append(cell(Number(entry.quality_score).toFixed(1), ""));
+      row.append(
+        cell(
+          `${entry.public_passed_cases}/${entry.public_total_cases} · ${Number(entry.public_score).toFixed(1)}`,
+          "",
+        ),
+      );
+      row.append(
+        cell(
+          `${entry.private_passed_cases}/${entry.private_total_cases} · ${Number(entry.private_score).toFixed(1)}`,
+          "",
+        ),
+      );
       row.append(cell(`$${Number(entry.cost_usd).toFixed(4)}`, "leaderboard-cost"));
       body.append(row);
     }

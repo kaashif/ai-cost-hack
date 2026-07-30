@@ -1,0 +1,4 @@
+interface:
+  display_name: "Judge AI Cost Hack"
+  short_description: "Safely intake and judge repository submissions"
+  default_prompt: "Use $judge-ai-cost-hack to inspect and judge this list of repository submissions."

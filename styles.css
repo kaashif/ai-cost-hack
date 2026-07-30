@@ -295,16 +295,75 @@ article > section > p,
   margin-top: 0;
 }
 
-.section-heading {
+.leaderboard-promo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin: 2rem 0 0.5rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--yellow);
+  border-radius: 7px;
+}
+
+.leaderboard-promo .eyebrow {
+  margin-bottom: 0.2rem;
+}
+
+.leaderboard-promo a {
+  flex: 0 0 auto;
+  padding: 0.65rem 0.85rem;
+  color: var(--canvas);
+  background: var(--yellow);
+  border-radius: 6px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.leaderboard-promo a:hover,
+.leaderboard-promo a:focus-visible {
+  color: var(--canvas);
+  background: white;
+}
+
+.leaderboard-page {
+  width: min(100% - 3rem, 1080px);
+  margin: 0 auto;
+  padding: 3.5rem 0 6rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.leaderboard-card {
+  padding: clamp(2rem, 6vw, 5rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.leaderboard-card h1 {
+  margin-bottom: 0;
+}
+
+.leaderboard-card .lead {
+  margin-top: 1.5rem;
+}
+
+.leaderboard-hero {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.section-heading h2 {
-  margin-bottom: 0;
+  gap: 2rem;
 }
 
 .eyebrow {
@@ -391,6 +450,13 @@ article > section > p,
   padding-block: 2rem !important;
   color: var(--muted);
   text-align: center !important;
+}
+
+.leaderboard-method {
+  max-width: 72ch;
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .note,
@@ -528,10 +594,29 @@ section {
     text-align: left;
   }
 
-  .section-heading {
+  .leaderboard-promo {
     align-items: flex-start;
     flex-direction: column;
-    gap: 0.5rem;
+  }
+
+  .leaderboard-page {
+    width: min(100% - 1.25rem, 760px);
+    padding-top: 1.25rem;
+  }
+
+  .leaderboard-card {
+    padding: 2.25rem 1.35rem;
+    border-radius: 8px;
+  }
+
+  .leaderboard-card h1 {
+    font-size: 2.65rem;
+  }
+
+  .leaderboard-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .leaderboard-updated {

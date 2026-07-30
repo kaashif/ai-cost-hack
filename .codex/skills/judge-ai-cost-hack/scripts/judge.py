@@ -1,81 +1,33 @@
 #!/usr/bin/env python3
-"""Safely intake and orchestrate judging of untrusted Cost Hack submissions."""
+"""Run trusted Cost Hack repositories and publish a cost leaderboard."""
 
 from __future__ import annotations
 
 import argparse
-import ast
 import csv
 import datetime as dt
-import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 API_BASE = "https://api-gateway.merge.dev/v1"
+SKILL_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
-MAX_FILES = 5_000
-MAX_TOTAL_BYTES = 50 * 1024 * 1024
-MAX_FILE_BYTES = 5 * 1024 * 1024
-MAX_SCAN_BYTES = 512 * 1024
+CONTAINER_IMAGE = "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
 SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
-TEXT_EXTENSIONS = {
-    ".cfg",
-    ".ini",
-    ".json",
-    ".md",
-    ".py",
-    ".sh",
-    ".toml",
-    ".txt",
-    ".yaml",
-    ".yml",
-}
-REJECT_EXTENSIONS = {
-    ".7z",
-    ".bin",
-    ".class",
-    ".dll",
-    ".dylib",
-    ".exe",
-    ".gz",
-    ".jar",
-    ".o",
-    ".pyc",
-    ".so",
-    ".tar",
-    ".xz",
-    ".zip",
-}
-REVIEW_PATTERNS = {
-    "encoded-payload": re.compile(rb"(base64\.b64decode|codecs\.decode|marshal\.loads)"),
-    "secret-pattern": re.compile(rb"(-----BEGIN [A-Z ]+PRIVATE KEY-----|sk-[A-Za-z0-9_-]{20,})"),
-}
 
 
 def now() -> str:
     return dt.datetime.now(dt.UTC).isoformat()
-
-
-def run_git(args: list[str], *, cwd: Path | None = None, text: bool = True) -> str | bytes:
-    result = subprocess.run(
-        ["git", *args],
-        cwd=cwd,
-        check=True,
-        capture_output=True,
-        text=text,
-        timeout=60,
-    )
-    return result.stdout
 
 
 def normalize_repo_url(value: str) -> str:
@@ -91,225 +43,96 @@ def normalize_repo_url(value: str) -> str:
         or parsed.query
         or parsed.fragment
     ):
-        raise ValueError("only credential-free https://github.com/OWNER/REPO URLs are allowed")
+        raise ValueError("expected a credential-free https://github.com/OWNER/REPO URL")
     parts = [part for part in parsed.path.split("/") if part]
     if len(parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9_.-]+", part) for part in parts):
-        raise ValueError("repository URL must have exactly OWNER/REPO")
+        raise ValueError("repository URL must contain exactly OWNER/REPO")
     owner, repo = parts
-    return f"https://github.com/{owner}/{repo.removesuffix('.git')}.git"
+    return f"https://github.com/{owner}/{repo.removesuffix('.git')}"
 
 
-def load_submissions(path: Path) -> list[dict[str, str | None]]:
+def load_entries(path: Path) -> list[dict[str, str | None]]:
+    entries: list[dict[str, str | None]] = []
     if path.suffix.lower() == ".csv":
         with path.open(newline="", encoding="utf-8-sig") as handle:
             rows = list(csv.DictReader(handle))
-        output: list[dict[str, str | None]] = []
         for index, row in enumerate(rows, 1):
-            url = row.get("repo_url") or row.get("repository_url") or row.get("github_url")
-            if not url:
+            repo = row.get("repo_url") or row.get("repository_url") or row.get("github_url")
+            if not repo:
                 raise ValueError(f"CSV row {index} has no repo_url")
-            output.append(
+            normalized = normalize_repo_url(repo)
+            entries.append(
                 {
                     "submission_id": row.get("submission_id") or f"submission-{index:03d}",
-                    "repo_url": url,
+                    "team_name": row.get("team_name") or normalized.rsplit("/", 1)[-1],
+                    "repo_url": normalized,
                     "commit_sha": row.get("commit_sha") or row.get("sha") or None,
                 }
             )
-        return output
-    output = []
-    for index, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        return entries
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
         fields = stripped.split()
         if len(fields) > 2:
-            raise ValueError(f"line {index}: expected URL and optional commit SHA")
-        output.append(
+            raise ValueError(f"line {line_number}: expected URL and optional commit SHA")
+        normalized = normalize_repo_url(fields[0])
+        entries.append(
             {
-                "submission_id": f"submission-{len(output) + 1:03d}",
-                "repo_url": fields[0],
+                "submission_id": f"submission-{len(entries) + 1:03d}",
+                "team_name": normalized.rsplit("/", 1)[-1],
+                "repo_url": normalized,
                 "commit_sha": fields[1] if len(fields) == 2 else None,
             }
         )
-    return output
+    if not entries:
+        raise ValueError("repository list is empty")
+    return entries
 
 
-def finding(severity: str, code: str, message: str, path: str | None = None) -> dict[str, Any]:
-    return {"severity": severity, "code": code, "path": path, "message": message}
+def run_command(
+    command: list[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    timeout: int = 60,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
 
 
-def parse_tree(raw: bytes) -> Iterable[tuple[str, str, str, int | None, str]]:
-    for record in raw.split(b"\0"):
-        if not record:
-            continue
-        metadata, path = record.split(b"\t", 1)
-        mode, kind, object_id, size = metadata.decode().split()
-        yield (
-            mode,
-            kind,
-            object_id,
-            None if size == "-" else int(size),
-            path.decode(errors="replace"),
-        )
-
-
-def trusted_baseline_blobs() -> dict[str, str]:
-    try:
-        raw = run_git(["ls-tree", "-r", "-z", "-l", "HEAD"], cwd=PROJECT_ROOT, text=False)
-    except (OSError, subprocess.SubprocessError):
-        return {}
-    return {path: object_id for _, _, object_id, _, path in parse_tree(raw)}
-
-
-def dotted_name(node: ast.AST) -> str:
-    if isinstance(node, ast.Name):
-        return node.id
-    if isinstance(node, ast.Attribute):
-        prefix = dotted_name(node.value)
-        return f"{prefix}.{node.attr}" if prefix else node.attr
-    return ""
-
-
-def scan_python(content: bytes, path: str) -> list[dict[str, Any]]:
-    try:
-        tree = ast.parse(content.decode("utf-8"))
-    except (SyntaxError, UnicodeError) as exc:
-        return [finding("review", "python-parse-error", f"cannot parse Python: {exc}", path)]
-    findings = []
-    call_groups = {
-        "dynamic-execution": {"eval", "exec", "compile"},
-        "process-execution": {
-            "os.popen",
-            "os.system",
-            "subprocess.call",
-            "subprocess.check_call",
-            "subprocess.check_output",
-            "subprocess.Popen",
-            "subprocess.run",
-        },
-        "raw-network": {
-            "requests.delete",
-            "requests.get",
-            "requests.post",
-            "requests.put",
-            "socket.create_connection",
-            "urllib.request.urlopen",
-        },
-        "encoded-payload": {
-            "base64.b64decode",
-            "codecs.decode",
-            "marshal.loads",
-        },
-        "destructive-filesystem": {
-            "os.remove",
-            "os.unlink",
-            "shutil.rmtree",
-        },
-    }
-    seen = set()
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        name = dotted_name(node.func)
-        for code, names in call_groups.items():
-            if name in names and code not in seen:
-                seen.add(code)
-                findings.append(
-                    finding("review", code, f"{name} call requires manual review", path)
-                )
-    return findings
-
-
-def inspect_submission(
-    item: dict[str, str | None], root: Path, baseline_blobs: dict[str, str]
-) -> dict[str, Any]:
-    submission_id = str(item["submission_id"])
-    record: dict[str, Any] = {
-        "submission_id": submission_id,
-        "repo_url": item["repo_url"],
-        "requested_commit": item["commit_sha"],
-        "resolved_commit": None,
-        "status": "reject",
-        "findings": [],
-        "file_count": 0,
-        "total_bytes": 0,
-    }
-    try:
-        repo_url = normalize_repo_url(str(item["repo_url"]))
-        requested = item["commit_sha"]
-        if requested and not SHA_RE.fullmatch(requested):
-            raise ValueError("commit_sha must be a full 40-character Git SHA")
-        record["repo_url"] = repo_url.removesuffix(".git")
-        bare = root / hashlib.sha256(submission_id.encode()).hexdigest()[:16]
-        bare.mkdir()
-        run_git(["init", "--bare"], cwd=bare)
-        run_git(["remote", "add", "origin", repo_url], cwd=bare)
-        ref = requested or "HEAD"
-        run_git(["fetch", "--depth=1", "--no-tags", "origin", ref], cwd=bare)
-        commit = str(run_git(["rev-parse", "FETCH_HEAD^{commit}"], cwd=bare)).strip()
-        record["resolved_commit"] = commit
-        entries = list(
-            parse_tree(run_git(["ls-tree", "-r", "-z", "-l", commit], cwd=bare, text=False))
-        )
-        record["file_count"] = len(entries)
-        record["total_bytes"] = sum(size or 0 for _, _, _, size, _ in entries)
-        if len(entries) > MAX_FILES:
-            record["findings"].append(
-                finding("reject", "too-many-files", f"{len(entries)} files exceeds {MAX_FILES}")
-            )
-        if record["total_bytes"] > MAX_TOTAL_BYTES:
-            record["findings"].append(
-                finding("reject", "repository-too-large", "repository exceeds 50 MiB")
-            )
-        for mode, kind, object_id, size, path in entries:
-            suffix = Path(path).suffix.lower()
-            if mode in {"120000", "160000"} or kind == "commit":
-                record["findings"].append(
-                    finding(
-                        "reject", "indirect-content", "symlinks and submodules are forbidden", path
-                    )
-                )
-            if size is not None and size > MAX_FILE_BYTES:
-                record["findings"].append(
-                    finding("reject", "file-too-large", "file exceeds 5 MiB", path)
-                )
-            if suffix in REJECT_EXTENSIONS:
-                record["findings"].append(
-                    finding("reject", "binary-or-archive", f"{suffix} files are forbidden", path)
-                )
-            if path == ".gitmodules":
-                record["findings"].append(
-                    finding("reject", "gitmodules", "submodule configuration is forbidden", path)
-                )
-            is_trusted_baseline = baseline_blobs.get(path) == object_id
-            if path == "setup.py" and not is_trusted_baseline:
-                record["findings"].append(
-                    finding("review", "executable-configuration", "manual review required", path)
-                )
-            if (
-                not is_trusted_baseline
-                and size is not None
-                and size <= MAX_SCAN_BYTES
-                and (suffix in TEXT_EXTENSIONS or Path(path).name in {"Dockerfile", "Makefile"})
-            ):
-                content = run_git(["show", f"{commit}:{path}"], cwd=bare, text=False)
-                if suffix == ".py":
-                    record["findings"].extend(scan_python(content, path))
-                    content_patterns = {"secret-pattern": REVIEW_PATTERNS["secret-pattern"]}
-                else:
-                    content_patterns = REVIEW_PATTERNS
-                for code, pattern in content_patterns.items():
-                    if pattern.search(content):
-                        record["findings"].append(
-                            finding("review", code, "suspicious capability requires review", path)
-                        )
-        severities = {entry["severity"] for entry in record["findings"]}
-        record["status"] = (
-            "reject" if "reject" in severities else "review" if severities else "pass"
-        )
-    except (OSError, subprocess.SubprocessError, UnicodeError, ValueError) as exc:
-        record["findings"].append(finding("reject", "intake-error", str(exc)))
-    return record
+def clone_entry(entry: dict[str, str | None], destination: Path) -> str:
+    requested = entry["commit_sha"]
+    if requested and not SHA_RE.fullmatch(requested):
+        raise ValueError("commit_sha must be a full 40-character SHA")
+    run_command(["git", "init", "--quiet", str(destination)])
+    run_command(["git", "-C", str(destination), "remote", "add", "origin", str(entry["repo_url"])])
+    run_command(
+        [
+            "git",
+            "-C",
+            str(destination),
+            "fetch",
+            "--quiet",
+            "--depth=1",
+            "--no-tags",
+            "origin",
+            requested or "HEAD",
+        ]
+    )
+    commit = run_command(
+        ["git", "-C", str(destination), "rev-parse", "FETCH_HEAD^{commit}"]
+    ).stdout.strip()
+    run_command(["git", "-C", str(destination), "checkout", "--quiet", "--detach", commit])
+    return commit
 
 
 def api_request(
@@ -326,7 +149,7 @@ def api_request(
         headers={
             "Authorization": f"Bearer {management_key}",
             "Content-Type": "application/json",
-            "User-Agent": "ai-cost-hack-judge/1",
+            "User-Agent": "ai-cost-hack-judge/2",
         },
     )
     try:
@@ -338,7 +161,7 @@ def api_request(
         raise RuntimeError(f"Merge Gateway {method} {path} failed ({exc.code}): {detail}") from exc
 
 
-def provision(
+def provision_attempt(
     management_key: str, attempt_id: str, budget: float
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     project = api_request(
@@ -347,7 +170,7 @@ def provision(
         management_key,
         {
             "name": f"Cost Hack {attempt_id}",
-            "description": f"Isolated judging attempt {attempt_id}",
+            "description": f"Leaderboard attempt {attempt_id}",
             "budget_config": {
                 "amount": budget,
                 "period": "daily",
@@ -370,26 +193,16 @@ def provision(
             },
         )
         if "key" not in key or "hash" not in key:
-            raise RuntimeError("Merge Gateway did not return the one-time project key")
+            raise RuntimeError("Merge Gateway did not return a project key")
+        return project, key
     except Exception:
-        if key is not None and key.get("hash"):
-            api_request(
-                "PATCH",
-                f"/keys/{key['hash']}",
-                management_key,
-                {"disabled": True},
-            )
-        api_request(
-            "PATCH",
-            f"/projects/{project['id']}",
-            management_key,
-            {"is_active": False},
-        )
+        if key and key.get("hash"):
+            api_request("PATCH", f"/keys/{key['hash']}", management_key, {"disabled": True})
+        api_request("PATCH", f"/projects/{project['id']}", management_key, {"is_active": False})
         raise
-    return project, key
 
 
-def close_attempt(management_key: str, project_id: str, key_hash: str) -> None:
+def close_attempt(management_key: str, project_id: str, key_hash: str) -> list[str]:
     errors = []
     for path, body in (
         (f"/keys/{key_hash}", {"disabled": True}),
@@ -399,18 +212,84 @@ def close_attempt(management_key: str, project_id: str, key_hash: str) -> None:
             api_request("PATCH", path, management_key, body)
         except Exception as exc:
             errors.append(str(exc))
-    if errors:
-        raise RuntimeError("; ".join(errors))
+    return errors
 
 
-def load_approvals(path: Path | None) -> set[str]:
-    if path is None:
-        return set()
-    return {
-        line.strip()
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
+def run_container(
+    repo: Path,
+    private_cases: Path,
+    api_key: str,
+    project_id: str,
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    evaluator = SKILL_ROOT / "scripts" / "container_evaluator.py"
+    trusted_src = PROJECT_ROOT / "src"
+    command = [
+        "docker",
+        "run",
+        "--rm",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--user=65532:65532",
+        "--pids-limit=256",
+        "--memory=2g",
+        "--cpus=2",
+        "--tmpfs=/tmp:rw,noexec,nosuid,size=1g,mode=1777",
+        "--tmpfs=/work:rw,nosuid,size=1g,mode=1777",
+        "--env",
+        "MERGE_GATEWAY_API_KEY",
+        "--env",
+        "MERGE_GATEWAY_PROJECT_ID",
+        "--env",
+        "UV_PROJECT_ENVIRONMENT=/tmp/venv",
+        "--env",
+        "UV_CACHE_DIR=/tmp/uv-cache",
+        "--env",
+        "HOME=/tmp/home",
+        "--volume",
+        f"{repo.resolve()}:/submission:ro",
+        "--volume",
+        f"{private_cases.resolve()}:/private_cases.json:ro",
+        "--volume",
+        f"{evaluator.resolve()}:/judge/container_evaluator.py:ro",
+        "--volume",
+        f"{trusted_src.resolve()}:/judge/src:ro",
+        CONTAINER_IMAGE,
+        "sh",
+        "-lc",
+        (
+            "cp -a /submission /work/repo && cd /work/repo && "
+            "uv sync --quiet && "
+            "/tmp/venv/bin/python /judge/container_evaluator.py"
+        ),
+    ]
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "MERGE_GATEWAY_API_KEY": api_key,
+        "MERGE_GATEWAY_PROJECT_ID": project_id,
     }
+    try:
+        completed = run_command(command, env=env, timeout=timeout_seconds)
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "")[-2_000:]
+        raise RuntimeError(f"submission container failed: {detail}") from exc
+    result_lines = [
+        line.removeprefix("COSTHACK_RESULT=")
+        for line in completed.stdout.splitlines()
+        if line.startswith("COSTHACK_RESULT=")
+    ]
+    if len(result_lines) != 1:
+        raise RuntimeError("submission did not produce exactly one benchmark result")
+    result = json.loads(result_lines[0])
+    if not isinstance(result, dict):
+        raise RuntimeError("benchmark result is not an object")
+    return result
+
+
+def stable_usage(management_key: str, project_id: str) -> dict[str, Any]:
+    time.sleep(2)
+    return api_request("GET", f"/projects/{project_id}/usage", management_key)
 
 
 def append_jsonl(path: Path, value: dict[str, Any]) -> None:
@@ -419,218 +298,149 @@ def append_jsonl(path: Path, value: dict[str, Any]) -> None:
         handle.write(json.dumps(value, sort_keys=True) + "\n")
 
 
-def validate_sandbox_result(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        raise RuntimeError("sandbox did not produce a result file")
-    if path.stat().st_size > 1_000_000:
-        raise RuntimeError("sandbox result exceeded 1 MB")
-    result = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(result, dict):
-        raise RuntimeError("sandbox result must be a JSON object")
-    required_types = {
-        "eligible": bool,
-        "quality_score": (int, float),
-        "case_count": int,
-        "passed_case_count": int,
-    }
-    for field, expected in required_types.items():
-        value = result.get(field)
-        if isinstance(value, bool) and expected is not bool:
-            raise RuntimeError(f"sandbox result {field} has the wrong type")
-        if not isinstance(value, expected):
-            raise RuntimeError(f"sandbox result {field} has the wrong type")
-    if not 0 <= float(result["quality_score"]) <= 100:
-        raise RuntimeError("sandbox result quality_score must be between 0 and 100")
-    if not 0 <= result["passed_case_count"] <= result["case_count"]:
-        raise RuntimeError("sandbox result case counts are inconsistent")
-    return result
-
-
-def command_intake(args: argparse.Namespace) -> int:
-    submissions = load_submissions(args.input)
-    baseline_blobs = trusted_baseline_blobs()
-    with tempfile.TemporaryDirectory(prefix="costhack-intake-") as directory:
-        records = [
-            inspect_submission(item, Path(directory), baseline_blobs) for item in submissions
-        ]
-    manifest = {
-        "version": 1,
-        "created_at": now(),
-        "source": str(args.input.resolve()),
-        "submissions": records,
-    }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    counts = {
-        status: sum(row["status"] == status for row in records)
-        for status in ("pass", "review", "reject")
-    }
-    print(json.dumps({"output": str(args.output), "counts": counts}))
-    return 1 if counts["reject"] else 0
-
-
-def command_run(args: argparse.Namespace) -> int:
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    approvals = load_approvals(args.approvals)
-    selected = [
-        row
-        for row in manifest["submissions"]
-        if row["status"] == "pass"
-        or (row["status"] == "review" and row["submission_id"] in approvals)
+def load_audit(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
     ]
-    maximum = round(len(selected) * args.budget_usd, 2)
-    print(
-        json.dumps(
-            {"attempts": len(selected), "budget_each_usd": args.budget_usd, "maximum_usd": maximum}
+
+
+def write_leaderboard(results_path: Path, output: Path) -> None:
+    latest: dict[str, dict[str, Any]] = {}
+    for record in load_audit(results_path):
+        if record.get("status") == "completed":
+            latest[record["submission_id"]] = record
+    eligible = [
+        record
+        for record in latest.values()
+        if record.get("benchmark", {}).get("eligible") is True
+        and isinstance(record.get("usage", {}).get("total_spend"), (int, float))
+    ]
+    eligible.sort(
+        key=lambda record: (
+            float(record["usage"]["total_spend"]),
+            -float(record["benchmark"]["quality_score"]),
+            record["team_name"].casefold(),
         )
     )
-    if args.dry_run:
-        return 0
-    if not args.confirm_live:
-        raise ValueError("live execution requires --confirm-live")
-    management_key = os.environ.get("MERGE_GATEWAY_MANAGEMENT_KEY", "")
-    if not management_key.startswith("mgmt_"):
-        raise ValueError("MERGE_GATEWAY_MANAGEMENT_KEY must be a management key")
-    if not args.private_cases.is_file():
-        raise ValueError("private cases file does not exist")
-    if not args.sandbox_command.is_file() or not os.access(args.sandbox_command, os.X_OK):
-        raise ValueError("sandbox command must be an executable file")
-    for index, row in enumerate(selected, 1):
-        attempt_id = f"{row['submission_id']}-{row['resolved_commit'][:10]}-{index:03d}"
-        audit: dict[str, Any] = {
-            "attempt_id": attempt_id,
-            "submission_id": row["submission_id"],
-            "repo_url": row["repo_url"],
-            "commit_sha": row["resolved_commit"],
-            "started_at": now(),
-            "finished_at": None,
-            "status": "error",
-            "sandbox_command": str(args.sandbox_command.resolve()),
-            "return_code": None,
-            "timed_out": False,
-            "project_id": None,
-            "key_hash": None,
-            "budget_usd": args.budget_usd,
-            "usage": None,
-            "sandbox_result": None,
-            "error": None,
+    entries = [
+        {
+            "rank": rank,
+            "team_name": record["team_name"],
+            "repo_url": record["repo_url"],
+            "commit_sha": record["commit_sha"],
+            "quality_score": record["benchmark"]["quality_score"],
+            "cost_usd": record["usage"]["total_spend"],
         }
-        project: dict[str, Any] | None = None
-        key: dict[str, Any] | None = None
-        try:
-            project, key = provision(management_key, attempt_id, args.budget_usd)
-            audit["project_id"] = project["id"]
-            audit["key_hash"] = key["hash"]
-            with tempfile.TemporaryDirectory(prefix="costhack-result-") as directory:
-                output = Path(directory) / "result.json"
-                env = {
-                    "PATH": os.environ.get("PATH", ""),
-                    "MERGE_GATEWAY_API_KEY": key["key"],
-                    "MERGE_GATEWAY_PROJECT_ID": project["id"],
-                    "COSTHACK_ATTEMPT_ID": attempt_id,
-                }
-                command = [
-                    str(args.sandbox_command.resolve()),
-                    "--repo-url",
-                    row["repo_url"],
-                    "--commit-sha",
-                    row["resolved_commit"],
-                    "--private-cases",
-                    str(args.private_cases.resolve()),
-                    "--output",
-                    str(output),
-                ]
-                try:
-                    completed = subprocess.run(
-                        command,
-                        env=env,
-                        capture_output=True,
-                        text=True,
-                        timeout=args.timeout_seconds,
-                    )
-                    audit["return_code"] = completed.returncode
-                    if len(completed.stdout) > 100_000 or len(completed.stderr) > 100_000:
-                        raise RuntimeError("sandbox output exceeded 100 KiB")
-                    if completed.returncode != 0:
-                        raise RuntimeError(f"sandbox exited {completed.returncode}")
-                    audit["sandbox_result"] = validate_sandbox_result(output)
-                    audit["status"] = "completed"
-                except subprocess.TimeoutExpired:
-                    audit["timed_out"] = True
-                    raise RuntimeError("sandbox timed out") from None
-        except Exception as exc:
-            audit["error"] = str(exc)
-        finally:
-            if project is not None and key is not None:
-                try:
-                    close_attempt(management_key, project["id"], key["hash"])
-                except Exception as exc:
-                    audit["error"] = f"{audit['error'] or ''}; cleanup failed: {exc}".strip("; ")
-                try:
-                    audit["usage"] = api_request(
-                        "GET", f"/projects/{project['id']}/usage", management_key
-                    )
-                except Exception as exc:
-                    audit["error"] = f"{audit['error'] or ''}; usage failed: {exc}".strip("; ")
-            audit["finished_at"] = now()
-            append_jsonl(args.results, audit)
-    return 0
+        for rank, record in enumerate(eligible, 1)
+    ]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps({"generated_at": now(), "entries": entries}, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
-def command_usage(args: argparse.Namespace) -> int:
-    key = os.environ.get("MERGE_GATEWAY_MANAGEMENT_KEY", "")
-    print(json.dumps(api_request("GET", f"/projects/{args.project_id}/usage", key), indent=2))
-    return 0
-
-
-def command_close(args: argparse.Namespace) -> int:
-    if not args.confirm_live:
-        raise ValueError("credential changes require --confirm-live")
-    key = os.environ.get("MERGE_GATEWAY_MANAGEMENT_KEY", "")
-    close_attempt(key, args.project_id, args.key_hash)
-    print(json.dumps({"project_id": args.project_id, "key_hash": args.key_hash, "disabled": True}))
-    return 0
-
-
-def build_parser() -> argparse.ArgumentParser:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    sub = parser.add_subparsers(dest="command", required=True)
-    intake = sub.add_parser("intake")
-    intake.add_argument("input", type=Path)
-    intake.add_argument("--output", type=Path, required=True)
-    intake.set_defaults(func=command_intake)
-
-    run = sub.add_parser("run")
-    run.add_argument("manifest", type=Path)
-    run.add_argument("--private-cases", type=Path, required=True)
-    run.add_argument("--sandbox-command", type=Path, required=True)
-    run.add_argument("--budget-usd", type=float, required=True)
-    run.add_argument("--approvals", type=Path)
-    run.add_argument("--results", type=Path, required=True)
-    run.add_argument("--timeout-seconds", type=int, default=600)
-    run.add_argument("--dry-run", action="store_true")
-    run.add_argument("--confirm-live", action="store_true")
-    run.set_defaults(func=command_run)
-
-    usage = sub.add_parser("usage")
-    usage.add_argument("project_id")
-    usage.set_defaults(func=command_usage)
-
-    close = sub.add_parser("close")
-    close.add_argument("project_id")
-    close.add_argument("key_hash")
-    close.add_argument("--confirm-live", action="store_true")
-    close.set_defaults(func=command_close)
-    return parser
+    parser.add_argument("submissions", type=Path)
+    parser.add_argument("--private-cases", type=Path, required=True)
+    parser.add_argument("--budget-usd", type=float, required=True)
+    parser.add_argument("--results", type=Path, required=True)
+    parser.add_argument("--leaderboard", type=Path, default=PROJECT_ROOT / "site/leaderboard.json")
+    parser.add_argument("--timeout-seconds", type=int, default=900)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--dry-run", action="store_true")
+    mode.add_argument("--confirm-live", action="store_true")
+    return parser.parse_args()
 
 
 def main() -> int:
     try:
-        args = build_parser().parse_args()
-        if getattr(args, "budget_usd", 1) <= 0:
+        args = parse_args()
+        entries = load_entries(args.submissions)
+        if args.budget_usd <= 0:
             raise ValueError("budget must be positive")
-        return int(args.func(args))
-    except (KeyError, OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+        maximum = round(len(entries) * args.budget_usd, 2)
+        print(
+            json.dumps(
+                {
+                    "entries": len(entries),
+                    "budget_each_usd": args.budget_usd,
+                    "maximum_usd": maximum,
+                }
+            )
+        )
+        if args.dry_run:
+            return 0
+        if not args.private_cases.is_file():
+            raise ValueError("private cases file does not exist")
+        run_command(["docker", "info", "--format", "{{.ServerVersion}}"])
+        management_key = os.environ.get("MERGE_GATEWAY_MANAGEMENT_KEY", "")
+        if not management_key.startswith("mgmt_"):
+            raise ValueError("MERGE_GATEWAY_MANAGEMENT_KEY must start with mgmt_")
+        for index, entry in enumerate(entries, 1):
+            with tempfile.TemporaryDirectory(prefix="costhack-run-") as directory:
+                commit = clone_entry(entry, Path(directory) / "repo")
+                attempt_id = f"{entry['submission_id']}-{commit[:10]}-{index:03d}"
+                audit: dict[str, Any] = {
+                    "attempt_id": attempt_id,
+                    "submission_id": entry["submission_id"],
+                    "team_name": entry["team_name"],
+                    "repo_url": entry["repo_url"],
+                    "commit_sha": commit,
+                    "budget_usd": args.budget_usd,
+                    "started_at": now(),
+                    "finished_at": None,
+                    "status": "error",
+                    "project_id": None,
+                    "key_hash": None,
+                    "benchmark": None,
+                    "usage": None,
+                    "error": None,
+                }
+                project: dict[str, Any] | None = None
+                key: dict[str, Any] | None = None
+                try:
+                    project, key = provision_attempt(management_key, attempt_id, args.budget_usd)
+                    audit["project_id"] = project["id"]
+                    audit["key_hash"] = key["hash"]
+                    audit["benchmark"] = run_container(
+                        Path(directory) / "repo",
+                        args.private_cases,
+                        key["key"],
+                        project["id"],
+                        args.timeout_seconds,
+                    )
+                    audit["status"] = "completed"
+                except Exception as exc:
+                    audit["error"] = str(exc)
+                finally:
+                    if project is not None and key is not None:
+                        cleanup_errors = close_attempt(management_key, project["id"], key["hash"])
+                        if cleanup_errors:
+                            audit["error"] = "; ".join(
+                                [value for value in [audit["error"], *cleanup_errors] if value]
+                            )
+                        try:
+                            audit["usage"] = stable_usage(management_key, project["id"])
+                        except Exception as exc:
+                            audit["error"] = "; ".join(
+                                [value for value in [audit["error"], str(exc)] if value]
+                            )
+                    audit["finished_at"] = now()
+                    append_jsonl(args.results, audit)
+                    write_leaderboard(args.results, args.leaderboard)
+        print(json.dumps({"leaderboard": str(args.leaderboard), "results": str(args.results)}))
+        return 0
+    except (
+        json.JSONDecodeError,
+        OSError,
+        RuntimeError,
+        subprocess.SubprocessError,
+        ValueError,
+    ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

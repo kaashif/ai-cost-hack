@@ -32,7 +32,15 @@ class JudgeTests(unittest.TestCase):
                     "team_name": "Team Two",
                     "repo_url": "https://github.com/example/two",
                     "commit_sha": "b" * 40,
-                    "benchmark": {"eligible": True, "quality_score": 90},
+                    "benchmark": {
+                        "eligible": True,
+                        "public": {"quality_score": 88, "passed_case_count": 4, "case_count": 5},
+                        "private": {
+                            "quality_score": 90,
+                            "passed_case_count": 10,
+                            "case_count": 10,
+                        },
+                    },
                     "usage": {"total_spend": 0.2},
                 },
                 {
@@ -41,7 +49,15 @@ class JudgeTests(unittest.TestCase):
                     "team_name": "Team One",
                     "repo_url": "https://github.com/example/one",
                     "commit_sha": "a" * 40,
-                    "benchmark": {"eligible": True, "quality_score": 91},
+                    "benchmark": {
+                        "eligible": True,
+                        "public": {"quality_score": 92, "passed_case_count": 5, "case_count": 5},
+                        "private": {
+                            "quality_score": 91,
+                            "passed_case_count": 10,
+                            "case_count": 10,
+                        },
+                    },
                     "usage": {"total_spend": 0.1},
                 },
             ]
@@ -55,6 +71,8 @@ class JudgeTests(unittest.TestCase):
             [entry["team_name"] for entry in output["entries"]], ["Team One", "Team Two"]
         )
         self.assertEqual([entry["rank"] for entry in output["entries"]], [1, 2])
+        self.assertEqual(output["entries"][0]["public_score"], 92)
+        self.assertEqual(output["entries"][0]["private_score"], 91)
 
 
 if __name__ == "__main__":

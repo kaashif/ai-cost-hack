@@ -14,7 +14,7 @@ the ranked leaderboard.
 - `.csv`: `repo_url`, plus optional `team_name`, `submission_id`, and `commit_sha`.
 - A private cases JSON file.
 - `MERGE_GATEWAY_MANAGEMENT_KEY` with `manage_projects`, `manage_keys`, and `read_usage`.
-- Docker and an explicit USD cap per entry.
+- Docker and explicit participant and private-judge USD caps per entry.
 
 ## Run
 
@@ -25,6 +25,7 @@ uv run .codex/skills/judge-ai-cost-hack/scripts/judge.py \
   submissions.csv \
   --private-cases /secure/private_cases.json \
   --budget-usd 1.00 \
+  --judge-budget-usd 0.10 \
   --results results/judging.jsonl \
   --leaderboard site/leaderboard.json \
   --dry-run
@@ -36,13 +37,14 @@ Then replace `--dry-run` with `--confirm-live`.
 For each repository the command:
 
 1. Resolves and records an immutable commit.
-2. Creates a fresh hard-limited Merge Gateway project and project-scoped key.
-3. Clones the commit and runs the private benchmark in a disposable, resource-limited
-   Docker container.
-4. Disables the key and project.
-5. Reads Merge Gateway `total_spend`.
+2. Creates separate hard-limited participant and private-judge Merge Gateway projects.
+3. Clones the commit and runs public and private benchmarks in a disposable,
+   resource-limited Docker container.
+4. Disables both keys and projects.
+5. Reads participant and judge Merge Gateway `total_spend` separately.
 6. Appends an audit record and rewrites `site/leaderboard.json`, ranked by lowest cost
-   among quality-eligible entries.
+   among private-quality-eligible entries. Only participant spend is published as
+   Merge cost; organizer judge spend remains in the private audit record.
 
 Do not rerun an entry in the same project. A rerun is a new attempt with a new project.
 Never put the management key or raw project keys in results or Git.

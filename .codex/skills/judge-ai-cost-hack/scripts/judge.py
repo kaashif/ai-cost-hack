@@ -22,6 +22,7 @@ from typing import Any
 API_BASE = "https://api-gateway.merge.dev/v1"
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PRIVATE_ROOT = PROJECT_ROOT.parent / "ai-cost-hackathon-content"
 CONTAINER_IMAGE = "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
 SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 
@@ -220,10 +221,15 @@ def run_container(
     private_cases: Path,
     api_key: str,
     project_id: str,
+    judge_api_key: str,
+    judge_project_id: str,
     timeout_seconds: int,
 ) -> dict[str, Any]:
     evaluator = SKILL_ROOT / "scripts" / "container_evaluator.py"
     trusted_src = PROJECT_ROOT / "src"
+    trusted_private_src = PRIVATE_ROOT / "src"
+    public_cases = PROJECT_ROOT / "data" / "public_cases.json"
+    private_gold = PRIVATE_ROOT / "hidden" / "gold_reviews.json"
     command = [
         "docker",
         "run",
@@ -242,6 +248,10 @@ def run_container(
         "--env",
         "MERGE_GATEWAY_PROJECT_ID",
         "--env",
+        "MERGE_JUDGE_API_KEY",
+        "--env",
+        "MERGE_JUDGE_PROJECT_ID",
+        "--env",
         "UV_PROJECT_ENVIRONMENT=/tmp/venv",
         "--env",
         "UV_CACHE_DIR=/tmp/uv-cache",
@@ -252,9 +262,15 @@ def run_container(
         "--volume",
         f"{private_cases.resolve()}:/private_cases.json:ro",
         "--volume",
+        f"{private_gold.resolve()}:/private_gold.json:ro",
+        "--volume",
+        f"{public_cases.resolve()}:/public_cases.json:ro",
+        "--volume",
         f"{evaluator.resolve()}:/judge/container_evaluator.py:ro",
         "--volume",
         f"{trusted_src.resolve()}:/judge/src:ro",
+        "--volume",
+        f"{trusted_private_src.resolve()}:/judge/private_src:ro",
         CONTAINER_IMAGE,
         "sh",
         "-lc",
@@ -268,6 +284,8 @@ def run_container(
         "PATH": os.environ.get("PATH", ""),
         "MERGE_GATEWAY_API_KEY": api_key,
         "MERGE_GATEWAY_PROJECT_ID": project_id,
+        "MERGE_JUDGE_API_KEY": judge_api_key,
+        "MERGE_JUDGE_PROJECT_ID": judge_project_id,
     }
     try:
         completed = run_command(command, env=env, timeout=timeout_seconds)
@@ -320,7 +338,7 @@ def write_leaderboard(results_path: Path, output: Path) -> None:
     eligible.sort(
         key=lambda record: (
             float(record["usage"]["total_spend"]),
-            -float(record["benchmark"]["quality_score"]),
+            -float(record["benchmark"]["private"]["quality_score"]),
             record["team_name"].casefold(),
         )
     )
@@ -330,7 +348,12 @@ def write_leaderboard(results_path: Path, output: Path) -> None:
             "team_name": record["team_name"],
             "repo_url": record["repo_url"],
             "commit_sha": record["commit_sha"],
-            "quality_score": record["benchmark"]["quality_score"],
+            "public_score": record["benchmark"]["public"]["quality_score"],
+            "public_passed_cases": record["benchmark"]["public"]["passed_case_count"],
+            "public_total_cases": record["benchmark"]["public"]["case_count"],
+            "private_score": record["benchmark"]["private"]["quality_score"],
+            "private_passed_cases": record["benchmark"]["private"]["passed_case_count"],
+            "private_total_cases": record["benchmark"]["private"]["case_count"],
             "cost_usd": record["usage"]["total_spend"],
         }
         for rank, record in enumerate(eligible, 1)
@@ -347,6 +370,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("submissions", type=Path)
     parser.add_argument("--private-cases", type=Path, required=True)
     parser.add_argument("--budget-usd", type=float, required=True)
+    parser.add_argument("--judge-budget-usd", type=float, required=True)
     parser.add_argument("--results", type=Path, required=True)
     parser.add_argument("--leaderboard", type=Path, default=PROJECT_ROOT / "site/leaderboard.json")
     parser.add_argument("--timeout-seconds", type=int, default=900)
@@ -360,22 +384,29 @@ def main() -> int:
     try:
         args = parse_args()
         entries = load_entries(args.submissions)
-        if args.budget_usd <= 0:
-            raise ValueError("budget must be positive")
-        maximum = round(len(entries) * args.budget_usd, 2)
+        if args.budget_usd <= 0 or args.judge_budget_usd <= 0:
+            raise ValueError("participant and judge budgets must be positive")
+        maximum = round(len(entries) * (args.budget_usd + args.judge_budget_usd), 2)
         print(
             json.dumps(
                 {
                     "entries": len(entries),
-                    "budget_each_usd": args.budget_usd,
+                    "participant_budget_each_usd": args.budget_usd,
+                    "judge_budget_each_usd": args.judge_budget_usd,
                     "maximum_usd": maximum,
                 }
             )
         )
         if args.dry_run:
             return 0
-        if not args.private_cases.is_file():
-            raise ValueError("private cases file does not exist")
+        required_inputs = [
+            args.private_cases,
+            PRIVATE_ROOT / "hidden" / "gold_reviews.json",
+            PRIVATE_ROOT / "src" / "patchguard_private",
+            PROJECT_ROOT / "data" / "public_cases.json",
+        ]
+        if any(not path.exists() for path in required_inputs):
+            raise ValueError("one or more public/private benchmark inputs do not exist")
         run_command(["docker", "info", "--format", "{{.ServerVersion}}"])
         management_key = os.environ.get("MERGE_GATEWAY_MANAGEMENT_KEY", "")
         if not management_key.startswith("mgmt_"):
@@ -391,26 +422,41 @@ def main() -> int:
                     "repo_url": entry["repo_url"],
                     "commit_sha": commit,
                     "budget_usd": args.budget_usd,
+                    "judge_budget_usd": args.judge_budget_usd,
                     "started_at": now(),
                     "finished_at": None,
                     "status": "error",
                     "project_id": None,
                     "key_hash": None,
+                    "judge_project_id": None,
+                    "judge_key_hash": None,
                     "benchmark": None,
                     "usage": None,
+                    "judge_usage": None,
                     "error": None,
                 }
                 project: dict[str, Any] | None = None
                 key: dict[str, Any] | None = None
+                judge_project: dict[str, Any] | None = None
+                judge_key: dict[str, Any] | None = None
                 try:
                     project, key = provision_attempt(management_key, attempt_id, args.budget_usd)
                     audit["project_id"] = project["id"]
                     audit["key_hash"] = key["hash"]
+                    judge_project, judge_key = provision_attempt(
+                        management_key,
+                        f"{attempt_id}-quality-judge",
+                        args.judge_budget_usd,
+                    )
+                    audit["judge_project_id"] = judge_project["id"]
+                    audit["judge_key_hash"] = judge_key["hash"]
                     audit["benchmark"] = run_container(
                         Path(directory) / "repo",
                         args.private_cases,
                         key["key"],
                         project["id"],
+                        judge_key["key"],
+                        judge_project["id"],
                         args.timeout_seconds,
                     )
                     audit["status"] = "completed"
@@ -425,6 +471,20 @@ def main() -> int:
                             )
                         try:
                             audit["usage"] = stable_usage(management_key, project["id"])
+                        except Exception as exc:
+                            audit["error"] = "; ".join(
+                                [value for value in [audit["error"], str(exc)] if value]
+                            )
+                    if judge_project is not None and judge_key is not None:
+                        cleanup_errors = close_attempt(
+                            management_key, judge_project["id"], judge_key["hash"]
+                        )
+                        if cleanup_errors:
+                            audit["error"] = "; ".join(
+                                [value for value in [audit["error"], *cleanup_errors] if value]
+                            )
+                        try:
+                            audit["judge_usage"] = stable_usage(management_key, judge_project["id"])
                         except Exception as exc:
                             audit["error"] = "; ".join(
                                 [value for value in [audit["error"], str(exc)] if value]

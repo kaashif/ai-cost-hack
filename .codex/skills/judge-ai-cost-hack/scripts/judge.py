@@ -9,6 +9,7 @@ import datetime as dt
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -29,6 +30,10 @@ SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 
 def now() -> str:
     return dt.datetime.now(dt.UTC).isoformat()
+
+
+def raise_interrupted(_signum: int, _frame: Any) -> None:
+    raise KeyboardInterrupt
 
 
 def normalize_repo_url(value: str) -> str:
@@ -242,7 +247,7 @@ def run_container(
         "--memory=2g",
         "--cpus=2",
         "--tmpfs=/tmp:rw,noexec,nosuid,size=1g,mode=1777",
-        "--tmpfs=/work:rw,nosuid,size=1g,mode=1777",
+        "--tmpfs=/work:rw,exec,nosuid,size=1g,mode=1777",
         "--env",
         "MERGE_GATEWAY_API_KEY",
         "--env",
@@ -252,9 +257,9 @@ def run_container(
         "--env",
         "MERGE_JUDGE_PROJECT_ID",
         "--env",
-        "UV_PROJECT_ENVIRONMENT=/tmp/venv",
+        "UV_PROJECT_ENVIRONMENT=/work/venv",
         "--env",
-        "UV_CACHE_DIR=/tmp/uv-cache",
+        "UV_CACHE_DIR=/work/uv-cache",
         "--env",
         "HOME=/tmp/home",
         "--volume",
@@ -275,9 +280,9 @@ def run_container(
         "sh",
         "-lc",
         (
-            "cp -a /submission /work/repo && cd /work/repo && "
+            "mkdir -p /work/repo && cp -a /submission/. /work/repo/ && cd /work/repo && "
             "uv sync --quiet && "
-            "/tmp/venv/bin/python /judge/container_evaluator.py"
+            "/work/venv/bin/python /judge/container_evaluator.py"
         ),
     ]
     env = {
@@ -329,13 +334,12 @@ def write_leaderboard(results_path: Path, output: Path) -> None:
     for record in load_audit(results_path):
         if record.get("status") == "completed":
             latest[record["submission_id"]] = record
-    eligible = [
+    graded = [
         record
         for record in latest.values()
-        if record.get("benchmark", {}).get("eligible") is True
-        and isinstance(record.get("usage", {}).get("total_spend"), (int, float))
+        if isinstance(record.get("usage", {}).get("total_spend"), (int, float))
     ]
-    eligible.sort(
+    graded.sort(
         key=lambda record: (
             float(record["usage"]["total_spend"]),
             -float(record["benchmark"]["private"]["quality_score"]),
@@ -356,7 +360,7 @@ def write_leaderboard(results_path: Path, output: Path) -> None:
             "private_total_cases": record["benchmark"]["private"]["case_count"],
             "cost_usd": record["usage"]["total_spend"],
         }
-        for rank, record in enumerate(eligible, 1)
+        for rank, record in enumerate(graded, 1)
     ]
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
@@ -382,6 +386,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     try:
+        signal.signal(signal.SIGTERM, raise_interrupted)
+        if hasattr(signal, "SIGHUP"):
+            signal.signal(signal.SIGHUP, raise_interrupted)
         args = parse_args()
         entries = load_entries(args.submissions)
         if args.budget_usd <= 0 or args.judge_budget_usd <= 0:
@@ -411,8 +418,11 @@ def main() -> int:
         management_key = os.environ.get("MERGE_GATEWAY_MANAGEMENT_KEY", "")
         if not management_key.startswith("mgmt_"):
             raise ValueError("MERGE_GATEWAY_MANAGEMENT_KEY must start with mgmt_")
+        work_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+        work_root = work_root / "ai-cost-hack" / "runs"
+        work_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         for index, entry in enumerate(entries, 1):
-            with tempfile.TemporaryDirectory(prefix="costhack-run-") as directory:
+            with tempfile.TemporaryDirectory(prefix="costhack-run-", dir=work_root) as directory:
                 commit = clone_entry(entry, Path(directory) / "repo")
                 attempt_id = f"{entry['submission_id']}-{commit[:10]}-{index:03d}"
                 audit: dict[str, Any] = {

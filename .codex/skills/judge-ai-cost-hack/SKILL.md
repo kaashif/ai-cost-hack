@@ -52,8 +52,8 @@ Never put the management key or raw project keys in results or Git.
 After checking `site/leaderboard.json`:
 
 1. Commit and push `main`.
-2. Copy `site/index.html`, `site/styles.css`, `site/leaderboard.js`, and
-   `site/leaderboard.json` to the `gh-pages` worktree.
+2. Copy `site/index.html`, `site/leaderboard.html`, `site/styles.css`,
+   `site/leaderboard.js`, and `site/leaderboard.json` to the `gh-pages` worktree.
 3. Commit and push `gh-pages`.
 4. Wait for GitHub Pages to build and verify the live leaderboard.
 

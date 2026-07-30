@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Official leaderboard for the London AI Cost Hackathon."
+    />
+    <title>Leaderboard · The London AI Cost Hackathon</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="leaderboard.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+
+    <header class="site-header">
+      <nav aria-label="Site links">
+        <a href="index.html">Guide</a>
+        <a href="https://github.com/kaashif/ai-cost-hack">GitHub</a>
+        <a href="https://luma.com/i29x7bkv">Event</a>
+      </nav>
+    </header>
+
+    <main class="leaderboard-page" id="content">
+      <a class="back-link" href="index.html">← Back to the challenge guide</a>
+      <section class="leaderboard-card" aria-labelledby="leaderboard-title">
+        <div class="leaderboard-hero">
+          <div>
+            <p class="eyebrow">Official results</p>
+            <h1 id="leaderboard-title">Cost leaderboard</h1>
+          </div>
+          <p class="leaderboard-updated" id="leaderboard-updated">
+            Waiting for judged submissions
+          </p>
+        </div>
+        <p class="lead">
+          Entries must pass the private quality gate. Eligible entries are ranked by
+          total model cost recorded by Merge Gateway—the lower, the better.
+        </p>
+        <div class="leaderboard-frame">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Team</th>
+                <th scope="col">Quality</th>
+                <th scope="col">Cost</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+              <tr>
+                <td class="leaderboard-empty" colspan="4">
+                  Results will appear here after judging.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="leaderboard-method">
+          Each submission receives a fresh capped Merge Gateway project. Cost shown is
+          the total spend recorded for its official judging run.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

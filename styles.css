@@ -245,6 +245,52 @@ article > section > p,
   line-height: 1.65;
 }
 
+.submission-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  margin: 1.5rem 0 2rem;
+  padding: 1.25rem 1.5rem;
+  color: var(--canvas);
+  background: var(--yellow);
+  border: 2px solid white;
+  border-radius: 10px;
+  box-shadow: 6px 6px 0 var(--pink);
+  text-decoration: none;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.submission-cta:hover,
+.submission-cta:focus-visible {
+  color: var(--canvas);
+  background: white;
+  box-shadow: 3px 3px 0 var(--pink);
+  transform: translate(3px, 3px);
+}
+
+.submission-cta:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+
+.submission-cta-label {
+  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.submission-cta-detail {
+  flex: 0 0 auto;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: right;
+}
+
 .agent-note {
   margin-top: 0;
 }
@@ -372,6 +418,16 @@ section {
 
   h1 {
     font-size: 2.65rem;
+  }
+
+  .submission-cta {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1.1rem 1.15rem;
+  }
+
+  .submission-cta-detail {
+    text-align: left;
   }
 
   .step {

@@ -1,4 +1,57 @@
 {
-  "generated_at": null,
-  "entries": []
+  "generated_at": "2026-07-30T19:22:09.381452+00:00",
+  "entries": [
+    {
+      "rank": 1,
+      "team_name": "PedroChaps",
+      "repo_url": "https://github.com/PedroChaps/ai-cost-hack",
+      "commit_sha": "71779f664cd30f561412f473fd4b24b6258425fe",
+      "public_score": 100.0,
+      "public_passed_cases": 10,
+      "public_total_cases": 10,
+      "private_score": 27.0,
+      "private_passed_cases": 3,
+      "private_total_cases": 10,
+      "cost_usd": 0.000623
+    },
+    {
+      "rank": 2,
+      "team_name": "alexthe2",
+      "repo_url": "https://github.com/alexthe2/ai-cost-hack",
+      "commit_sha": "47b4539aab0e4dc511dcbc554bac89dc5a1c3ebd",
+      "public_score": 94.25,
+      "public_passed_cases": 10,
+      "public_total_cases": 10,
+      "private_score": 59.0,
+      "private_passed_cases": 6,
+      "private_total_cases": 10,
+      "cost_usd": 0.001713
+    },
+    {
+      "rank": 3,
+      "team_name": "experimenzo",
+      "repo_url": "https://github.com/experimenzo/ai-cost-hack",
+      "commit_sha": "1dd7e527365c65962d3ac60cfcf02693b79da1d0",
+      "public_score": 100.0,
+      "public_passed_cases": 10,
+      "public_total_cases": 10,
+      "private_score": 32.5,
+      "private_passed_cases": 3,
+      "private_total_cases": 10,
+      "cost_usd": 0.003893
+    },
+    {
+      "rank": 4,
+      "team_name": "joe-crawford",
+      "repo_url": "https://github.com/joe-crawford/ai-cost-hack",
+      "commit_sha": "e6f7e9866857216a45675bf219b7b1de209cf743",
+      "public_score": 85.75,
+      "public_passed_cases": 8,
+      "public_total_cases": 10,
+      "private_score": 64.5,
+      "private_passed_cases": 6,
+      "private_total_cases": 10,
+      "cost_usd": 0.429935
+    }
+  ]
 }

@@ -48,7 +48,8 @@ def test_exact_public_finding_passes() -> None:
 def test_starter_scores_exactly_half_of_public_cases() -> None:
     strategy = _load_strategy()
     results = [
-        score_review(validate_review(strategy.review(case)), case["rubric"]) for case in _load_cases()
+        score_review(validate_review(strategy.review(case)), case["rubric"])
+        for case in _load_cases()
     ]
 
     assert len(results) == 10
